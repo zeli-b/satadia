@@ -48,6 +48,8 @@ let texts = [];
 function tick() {}
 
 function render() {
+  texts = [];
+
   context.fillStyle = COLOR_OCEAN;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
