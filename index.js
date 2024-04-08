@@ -271,6 +271,11 @@ function onmousemove(e) {
   render();
 }
 
+function onwheel(e) {
+  camera.zoom *= Math.exp(e.wheelDelta / 1000);
+  render();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
   context = canvas.getContext("2d");
@@ -280,4 +285,5 @@ document.addEventListener("DOMContentLoaded", () => {
   canvas.addEventListener("mousedown", onmousedown);
   canvas.addEventListener("mouseup", onmouseup);
   canvas.addEventListener("mousemove", onmousemove);
+  canvas.addEventListener("wheel", onwheel);
 });
