@@ -21,10 +21,22 @@ p {
 
 .hud-left {
   position: fixed;
-  max-height: 90vh;
+  max-height: 50vh;
   overflow-y: auto;
   background-color: white;
   margin: 20px;
   border-radius: 8px;
+  border: 1px solid black;
   padding: 10px;
+  transition: ease-out 0.2s transform;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-left-hidden {
+  transform: translate(calc(-100% + -20px));
+}
+
+.hud-left-button {
+  cursor: pointer;
 }
