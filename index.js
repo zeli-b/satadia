@@ -31,15 +31,22 @@ function render() {
 }
 
 function renderBorder() {
-  let [startX, startY] = convertPoint({ x: data.minx, y: data.miny });
-  let [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
+  const [startX, startY] = convertPoint({ x: data.minx, y: data.miny });
+  const [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
+  const width = endX - startX;
 
   context.beginPath();
-  context.moveTo(startX, startY);
-  context.lineTo(endX, startY);
-  context.lineTo(endX, endY);
-  context.lineTo(startX, endY);
-  context.lineTo(startX, startY);
+
+  context.moveTo(0, startY);
+  context.lineTo(canvas.width, startY);
+  context.moveTo(0, endY);
+  context.lineTo(canvas.width, endY);
+
+  for (let x = startX % width; x < canvas.width; x += width) {
+    context.moveTo(x, startY);
+    context.lineTo(x, endY);
+  }
+
   context.stroke();
 }
 
