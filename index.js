@@ -112,15 +112,14 @@ function getPointPositions(points) {
   for (let i = 1; i < points.length; i++) {
     point = getPointById(data.points, points[i]);
 
-    let dx = point.x - previousPoint.x;
-    if (dx > (data.maxx - data.minx) / 2) {
+    while (point.x - previousPoint.x > (data.maxx - data.minx) / 2) {
       point = movePointLeft(point);
-    } else if (dx < -(data.maxx - data.minx) / 2) {
+    }
+    while (point.x - previousPoint.x < -(data.maxx - data.minx) / 2) {
       point = movePointRight(point);
     }
 
     result.push(point);
-
     previousPoint = point;
   }
 
@@ -274,7 +273,7 @@ function renderPlace(place, dx) {
   if (dx === undefined) dx = 0;
 
   let point = getPointById(data.points, place.point);
-  point.x += dx;
+  point = { x: point.x + dx, y: point.y };
   const realPosition = convertPoint(point);
 
   context.beginPath();
@@ -294,15 +293,14 @@ function renderPlace(place, dx) {
   // to right
   if (
     dx >= 0 &&
-    convertPoint({ x: point.x + (data.maxx - data.minx), y: point.y })[0] <=
-      canvas.width
+    convertPoint({ x: point.x + (data.maxx - data.minx) })[0] <= canvas.width
   ) {
     renderPlace(place, dx + (data.maxx - data.minx));
   }
   // to left
   if (
     dx <= 0 &&
-    convertPoint({ x: point.x - (data.maxx - data.minx), y: point.y })[0] > 0
+    convertPoint({ x: point.x - (data.maxx - data.minx) })[0] > 0
   ) {
     renderPlace(place, dx - (data.maxx - data.minx));
   }
