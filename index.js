@@ -7,6 +7,7 @@ const DATA = {
     { id: 4, x: 0.15, y: 0.1 },
     { id: 5, x: 0.15, y: 0.2 },
     { id: 6, x: 0.15, y: 0.15 },
+    { id: 7, x: 0.12, y: 0.17 },
   ],
   regions: [
     {
@@ -48,7 +49,7 @@ const DATA = {
     {
       id: 0,
       layer: 1,
-      point: 6,
+      point: 7,
       name: "거점",
     },
   ],
@@ -73,7 +74,8 @@ function render() {
 
   DATA.regions.forEach((region) => renderRegion(region));
   DATA.paths.forEach((path) => renderPath(path));
-  DATA.points.forEach((point) => renderPoint(point));
+  DATA.places.forEach((place) => renderPlace(place));
+  // DATA.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
 }
 
@@ -104,7 +106,7 @@ function renderRegion(region) {
     text: region.name,
     x: center[0],
     y: center[1],
-    font: "24pt Pretendard JP",
+    font: "32pt Pretendard JP",
   });
 }
 
@@ -168,6 +170,27 @@ function renderPath(path) {
   }
 }
 
+function renderPlace(place) {
+  const point = getPointById(DATA.points, place.point);
+
+  context.beginPath();
+  context.arc(...convertPoint(point), 8, 0, Math.PI * 2, false);
+  context.fillStyle = "#ffec00";
+  context.strokeStyle = "#000";
+  context.lineWidth = 1;
+  context.fill();
+  context.stroke();
+
+  texts.push({
+    text: place.name,
+    x: convertPoint(point)[0],
+    y: convertPoint(point)[1],
+    font: "16pt Pretendard JP",
+    align: "left",
+    margin: { left: 16 },
+  });
+}
+
 function renderText(text) {
   context.beginPath();
   context.font = text.font;
@@ -175,9 +198,9 @@ function renderText(text) {
   context.textAlign = text.align || "center";
   context.textBaseline = text.baseline || "middle";
 
-  let margin = text.margin || { left: 0, right: 0, top: 0, bottom: 0 };
-  let x = text.x + margin.left - margin.right;
-  let y = text.y + margin.top - margin.bottom;
+  let margin = text.margin || {};
+  let x = text.x + (margin.left || 0) - (margin.right || 0);
+  let y = text.y + (margin.top || 0) - (margin.bottom || 0);
 
   context.fillText(text.text, x, y);
 }
