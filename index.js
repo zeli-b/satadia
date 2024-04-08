@@ -23,8 +23,24 @@ const DATA = {
       id: 0,
       layer: 1,
       points: [4, 6, 5],
-      name: "직선",
+      name: "세로선",
       color: "black",
+      width: 2,
+    },
+    {
+      id: 0,
+      layer: 1,
+      points: [0, 4, 2],
+      name: "가로선",
+      color: "red",
+      width: 2,
+    },
+    {
+      id: 0,
+      layer: 1,
+      points: [2, 5, 3],
+      name: "꺾인 선",
+      color: "blue",
       width: 2,
     },
   ],
@@ -40,9 +56,11 @@ const DATA = {
 
 const COLOR_OCEAN = "#5a89a8";
 
+/** @type {HTMLCanvasElement} */
 let canvas;
+/** @type {CanvasRenderingContext2D} */
 let context;
-let camera = { x: 0.15, y: 0.15, zoom: 3000 };
+let camera = { x: 0.15, y: 0.15, zoom: 5000 };
 let texts = [];
 
 function tick() {}
@@ -54,6 +72,7 @@ function render() {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   DATA.regions.forEach((region) => renderRegion(region));
+  DATA.paths.forEach((path) => renderPath(path));
   DATA.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
 }
@@ -85,20 +104,82 @@ function renderRegion(region) {
     text: region.name,
     x: center[0],
     y: center[1],
-    font: "16pt Pretendard JP",
-    color: "#000",
-    align: "center",
-    baseline: "middle",
+    font: "24pt Pretendard JP",
   });
+}
+
+function renderPath(path) {
+  const { points } = path;
+
+  context.beginPath();
+  context.moveTo(...convertPoint(getPointById(DATA.points, points[0])));
+  for (let i = 1; i < points.length; i++) {
+    context.lineTo(...convertPoint(getPointById(DATA.points, points[i])));
+  }
+
+  context.strokeStyle = path.color;
+  context.lineWidth = path.width;
+  context.stroke();
+
+  // label
+  let align, baseline;
+  let margin = { left: 0, right: 0, top: 0, bottom: 0 };
+  // prettier-ignore
+  for (let indexes of [[0, 1], [points.length - 1, points.length - 2]]) {
+    margin = { left: 0, right: 0, top: 0, bottom: 0 };
+    if (
+      Math.abs(getPointById(DATA.points, points[indexes[0]]).x - getPointById(DATA.points, points[indexes[1]]).x)
+      > Math.abs(getPointById(DATA.points, points[indexes[0]]).y - getPointById(DATA.points, points[indexes[1]]).y)
+    ) {
+      // horizontal
+      baseline = "middle";
+      if (getPointById(DATA.points, points[indexes[0]]).x < getPointById(DATA.points, points[indexes[1]]).x) {
+        // to right
+        align = "right";
+        margin.right = 12;
+      } else {
+        // to left
+        align = "left";
+        margin.left = 12;
+      }
+    } else {
+      // vertical
+      align = "center";
+      if (getPointById(DATA.points, points[indexes[0]]).y < getPointById(DATA.points, points[indexes[1]]).y) {
+        // to bottom
+        baseline = "bottom";
+        margin.bottom = 12;
+      } else {
+        // to top
+        baseline = "top";
+        margin.top = 12;
+      }
+    }
+
+    texts.push({
+      text: path.name,
+      x: convertPoint(getPointById(DATA.points, points[indexes[0]]))[0],
+      y: convertPoint(getPointById(DATA.points, points[indexes[0]]))[1],
+      font: "16pt Pretendard JP",
+      align,
+      baseline,
+      margin,
+    });
+  }
 }
 
 function renderText(text) {
   context.beginPath();
   context.font = text.font;
-  context.fillStyle = text.color;
-  context.textAlign = text.align;
-  context.textBaseline = text.baseline;
-  context.fillText(text.text, text.x, text.y);
+  context.fillStyle = text.color || "#000";
+  context.textAlign = text.align || "center";
+  context.textBaseline = text.baseline || "middle";
+
+  let margin = text.margin || { left: 0, right: 0, top: 0, bottom: 0 };
+  let x = text.x + margin.left - margin.right;
+  let y = text.y + margin.top - margin.bottom;
+
+  context.fillText(text.text, x, y);
 }
 
 function getPointById(points, id) {
@@ -130,8 +211,10 @@ function getCenter(pointIds) {
 }
 
 function onresize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio;
+
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
 
   render();
 }
