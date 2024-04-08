@@ -1,9 +1,42 @@
 body {
   margin: 0;
+  font-family: "Pretendard JP", "Pretendard", "Noto Sans", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
 }
 
 .canvas {
   width: 100vw;
   height: 100vh;
   position: fixed;
+}
+
+.hud-left {
+  position: fixed;
+  max-height: 50vh;
+  overflow-y: auto;
+  background-color: white;
+  margin: 20px;
+  border-radius: 8px;
+  border: 1px solid black;
+  padding: 10px;
+  transition: ease-out 0.2s transform;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-left-hidden {
+  transform: translate(calc(-100% + -20px));
+}
+
+.hud-left-button {
+  cursor: pointer;
 }
