@@ -127,11 +127,19 @@ function getPointPositions(points) {
   return result;
 }
 
-function renderRegion(region) {
+function renderRegion(region, dx) {
+  if (dx === undefined) dx = 0;
+
   const { points } = region;
 
   // -- draw polygon
-  const positions = getPointPositions(points);
+  const positions = getPointPositions(points).map((position) => {
+    return {
+      x: position.x + dx,
+      y: position.y,
+      id: position.id,
+    };
+  });
   context.beginPath();
   context.moveTo(...convertPoint(positions[0]));
   for (let i = 1; i < points.length; i++) {
@@ -146,12 +154,30 @@ function renderRegion(region) {
   context.globalAlpha = 1.0;
 
   // -- fill text
-  const center = convertPoint(getCenter(positions));
+  const { center, min, max } = getSpecialPoints(positions);
+  const realCenter = convertPoint(center);
   context.font = "32pt Pretendard JP";
   context.fillStyle = "black";
   context.textBaseline = "middle";
   context.textAlign = "center";
-  context.fillText(region.name, center[0], center[1]);
+  context.fillText(region.name, realCenter[0], realCenter[1]);
+
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderRegion(region, dx + data.maxx - data.minx);
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderRegion(region, dx - data.maxx - data.minx);
+  }
 }
 
 function renderPath(path) {
@@ -246,7 +272,7 @@ function convertPoint(point) {
   return [x, y];
 }
 
-function getCenter(positions) {
+function getSpecialPoints(positions) {
   const [xs, ys] = positions.reduce(
     (acc, id) => {
       acc[0].push(id.x);
@@ -256,10 +282,18 @@ function getCenter(positions) {
     [[], []],
   );
 
-  const x = Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) / 2;
-  const y = Math.min(...ys) + (Math.max(...ys) - Math.min(...ys)) / 2;
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const centerX = minX + (maxX - minX) / 2;
+  const centerY = minY + (maxY - minY) / 2;
 
-  return { x: x, y: y };
+  return {
+    center: { x: centerX, y: centerY },
+    min: { x: minX, y: minY },
+    max: { x: maxX, y: maxY },
+  };
 }
 
 function onresize() {
