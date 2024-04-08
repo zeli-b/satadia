@@ -180,11 +180,19 @@ function renderRegion(region, dx) {
   }
 }
 
-function renderPath(path) {
+function renderPath(path, dx) {
+  if (dx === undefined) dx = 0;
+
   const { points } = path;
 
   // -- draw polygon
-  const positions = getPointPositions(points);
+  const positions = getPointPositions(points).map((position) => {
+    return {
+      x: position.x + dx,
+      y: position.y,
+      id: position.id,
+    };
+  });
 
   context.strokeStyle = path.color;
   context.lineWidth = path.width;
@@ -241,6 +249,24 @@ function renderPath(path) {
       realPosition[0] + margin.left - margin.right,
       realPosition[1] + margin.top - margin.bottom,
     );
+  }
+
+  // -- cylinderical render
+  const { min, max } = getSpecialPoints(positions);
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderPath(path, dx + data.maxx - data.minx);
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderPath(path, dx - data.maxx - data.minx);
   }
 }
 
