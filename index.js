@@ -393,6 +393,11 @@ function onmousemove(e) {
 
 function onwheel(e) {
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
+
+  if (camera.zoom < 1) {
+    camera.zoom = 1;
+  }
+
   render();
 }
 
