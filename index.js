@@ -224,7 +224,7 @@ function getCenter(pointIds) {
 
       return acc;
     },
-    [[], []]
+    [[], []],
   );
 
   const x = Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) / 2;
@@ -244,9 +244,40 @@ function onresize() {
 
 window.addEventListener("resize", onresize);
 
+let dragging = false;
+function onmousedown(e) {
+  if (e.which !== 1) {
+    return;
+  }
+
+  dragging = true;
+}
+
+function onmouseup(e) {
+  if (e.which !== 1) {
+    return;
+  }
+
+  dragging = false;
+}
+
+function onmousemove(e) {
+  if (!dragging) {
+    return;
+  }
+
+  camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
+  camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+  render();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
   context = canvas.getContext("2d");
 
   onresize();
+
+  canvas.addEventListener("mousedown", onmousedown);
+  canvas.addEventListener("mouseup", onmouseup);
+  canvas.addEventListener("mousemove", onmousemove);
 });
