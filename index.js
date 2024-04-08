@@ -174,7 +174,7 @@ function getCenter(pointIds) {
 
       return acc;
     },
-    [[], []]
+    [[], []],
   );
 
   const x = Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) / 2;
