@@ -7,7 +7,6 @@ let canvas;
 /** @type {CanvasRenderingContext2D} */
 let context;
 let camera = { x: 0.15, y: 0.15, zoom: 5000 };
-let texts = [];
 
 function tick() {}
 
@@ -15,9 +14,6 @@ function render() {
   if (data === undefined) {
     return;
   }
-
-  // initialise texts
-  texts = [];
 
   // background
   context.fillStyle = COLOR_OCEAN;
@@ -28,25 +24,29 @@ function render() {
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
   // data.points.forEach((point) => renderPoint(point));
-  texts.forEach((text) => renderText(text));
 
-  // map border
+  // render pre-hud
   renderBorder();
-
-  // render scale
   renderScale();
 }
 
 function renderBorder() {
-  let [startX, startY] = convertPoint({ x: data.minx, y: data.miny });
-  let [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
+  const [startX, startY] = convertPoint({ x: data.minx, y: data.miny });
+  const [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
+  const width = endX - startX;
 
   context.beginPath();
-  context.moveTo(startX, startY);
-  context.lineTo(endX, startY);
-  context.lineTo(endX, endY);
-  context.lineTo(startX, endY);
-  context.lineTo(startX, startY);
+
+  context.moveTo(0, startY);
+  context.lineTo(canvas.width, startY);
+  context.moveTo(0, endY);
+  context.lineTo(canvas.width, endY);
+
+  for (let x = startX % width; x < canvas.width; x += width) {
+    context.moveTo(x, startY);
+    context.lineTo(x, endY);
+  }
+
   context.stroke();
 }
 
@@ -96,56 +96,134 @@ function renderPoint(point) {
   context.fill();
 }
 
-function renderRegion(region) {
+function movePointLeft(point) {
+  let result = { ...point };
+  result.x -= data.maxx - data.minx;
+  return result;
+}
+
+function movePointRight(point) {
+  let result = { ...point };
+  result.x += data.maxx - data.minx;
+  return result;
+}
+
+function getPointPositions(points) {
+  let point, previousPoint;
+  const result = [];
+
+  point = getPointById(data.points, points[0]);
+  result.push(point);
+  previousPoint = point;
+
+  for (let i = 1; i < points.length; i++) {
+    point = getPointById(data.points, points[i]);
+
+    while (point.x - previousPoint.x > (data.maxx - data.minx) / 2) {
+      point = movePointLeft(point);
+    }
+    while (point.x - previousPoint.x < -(data.maxx - data.minx) / 2) {
+      point = movePointRight(point);
+    }
+
+    result.push(point);
+    previousPoint = point;
+  }
+
+  return result;
+}
+
+function renderRegion(region, dx) {
+  if (dx === undefined) dx = 0;
+
   const { points } = region;
 
+  // -- draw polygon
+  const positions = getPointPositions(points).map((position) => {
+    return {
+      x: position.x + dx,
+      y: position.y,
+      id: position.id,
+    };
+  });
   context.beginPath();
-  context.moveTo(...convertPoint(getPointById(data.points, points[0])));
+  context.moveTo(...convertPoint(positions[0]));
   for (let i = 1; i < points.length; i++) {
-    context.lineTo(...convertPoint(getPointById(data.points, points[i])));
+    context.lineTo(...convertPoint(positions[i]));
   }
   context.closePath();
 
+  // -- fill polygon
   context.fillStyle = region.color;
   context.globalAlpha = region.opacity;
   context.fill();
   context.globalAlpha = 1.0;
 
-  const center = getCenter(points);
-  texts.push({
-    text: region.name,
-    x: center[0],
-    y: center[1],
-    font: "32pt Pretendard JP",
-  });
+  // -- fill text
+  const { center, min, max } = getSpecialPoints(positions);
+  const realCenter = convertPoint(center);
+  context.font = "32pt Pretendard JP";
+  context.fillStyle = "black";
+  context.textBaseline = "middle";
+  context.textAlign = "center";
+  context.fillText(region.name, realCenter[0], realCenter[1]);
+
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderRegion(region, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderRegion(region, dx - (data.maxx - data.minx));
+  }
 }
 
-function renderPath(path) {
+function renderPath(path, dx) {
+  if (dx === undefined) dx = 0;
+
   const { points } = path;
 
-  context.beginPath();
-  context.moveTo(...convertPoint(getPointById(data.points, points[0])));
-  for (let i = 1; i < points.length; i++) {
-    context.lineTo(...convertPoint(getPointById(data.points, points[i])));
-  }
+  // -- draw polygon
+  const positions = getPointPositions(points).map((position) => {
+    return {
+      x: position.x + dx,
+      y: position.y,
+      id: position.id,
+    };
+  });
 
   context.strokeStyle = path.color;
   context.lineWidth = path.width;
+  context.beginPath();
+  context.moveTo(...convertPoint(positions[0]));
+  for (let i = 1; i < points.length; i++) {
+    context.lineTo(...convertPoint(positions[i]));
+  }
   context.stroke();
 
-  // label
+  // -- label
   let align, baseline;
   let margin = { left: 0, right: 0, top: 0, bottom: 0 };
-  // prettier-ignore
-  for (let indexes of [[0, 1], [points.length - 1, points.length - 2]]) {
+  for (let [i, j] of [
+    [0, 1],
+    [points.length - 1, points.length - 2],
+  ]) {
     margin = { left: 0, right: 0, top: 0, bottom: 0 };
     if (
-      Math.abs(getPointById(data.points, points[indexes[0]]).x - getPointById(data.points, points[indexes[1]]).x)
-      > Math.abs(getPointById(data.points, points[indexes[0]]).y - getPointById(data.points, points[indexes[1]]).y)
+      Math.abs(positions[i].x - positions[j].x) >
+      Math.abs(positions[i].y - positions[j].y)
     ) {
       // horizontal
       baseline = "middle";
-      if (getPointById(data.points, points[indexes[0]]).x < getPointById(data.points, points[indexes[1]]).x) {
+      if (positions[i].x < positions[j].x) {
         // to right
         align = "right";
         margin.right = 12;
@@ -157,7 +235,7 @@ function renderPath(path) {
     } else {
       // vertical
       align = "center";
-      if (getPointById(data.points, points[indexes[0]]).y < getPointById(data.points, points[indexes[1]]).y) {
+      if (positions[i].y < positions[j].y) {
         // to bottom
         baseline = "bottom";
         margin.bottom = 12;
@@ -168,51 +246,71 @@ function renderPath(path) {
       }
     }
 
-    texts.push({
-      text: path.name,
-      x: convertPoint(getPointById(data.points, points[indexes[0]]))[0],
-      y: convertPoint(getPointById(data.points, points[indexes[0]]))[1],
-      font: "16pt Pretendard JP",
-      align,
-      baseline,
-      margin,
-    });
+    const realPosition = convertPoint(positions[i]);
+    context.textAlign = align;
+    context.textBaseline = baseline;
+    context.font = "16pt Pretendard JP";
+    context.fillText(
+      path.name,
+      realPosition[0] + margin.left - margin.right,
+      realPosition[1] + margin.top - margin.bottom,
+    );
+  }
+
+  // -- cylinderical render
+  const { min, max } = getSpecialPoints(positions);
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderPath(path, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderPath(path, dx - (data.maxx - data.minx));
   }
 }
 
-function renderPlace(place) {
-  const point = getPointById(data.points, place.point);
+function renderPlace(place, dx) {
+  if (dx === undefined) dx = 0;
+
+  let point = getPointById(data.points, place.point);
+  point = { x: point.x + dx, y: point.y };
+  const realPosition = convertPoint(point);
 
   context.beginPath();
-  context.arc(...convertPoint(point), 8, 0, Math.PI * 2, false);
+  context.arc(...realPosition, 8, 0, Math.PI * 2, false);
   context.fillStyle = "#ffec00";
   context.strokeStyle = "#000";
   context.lineWidth = 1;
   context.fill();
   context.stroke();
 
-  texts.push({
-    text: place.name,
-    x: convertPoint(point)[0],
-    y: convertPoint(point)[1],
-    font: "16pt Pretendard JP",
-    align: "left",
-    margin: { left: 16 },
-  });
-}
+  context.font = "16pt Pretendard JP";
+  context.textAlign = "left";
+  context.fillStyle = "black";
+  context.fillText(place.name, realPosition[0] + 16, realPosition[1]);
 
-function renderText(text) {
-  context.beginPath();
-  context.font = text.font;
-  context.fillStyle = text.color || "#000";
-  context.textAlign = text.align || "center";
-  context.textBaseline = text.baseline || "middle";
-
-  let margin = text.margin || {};
-  let x = text.x + (margin.left || 0) - (margin.right || 0);
-  let y = text.y + (margin.top || 0) - (margin.bottom || 0);
-
-  context.fillText(text.text, x, y);
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: point.x + (data.maxx - data.minx) })[0] <= canvas.width
+  ) {
+    renderPlace(place, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: point.x - (data.maxx - data.minx) })[0] > 0
+  ) {
+    renderPlace(place, dx - (data.maxx - data.minx));
+  }
 }
 
 function getPointById(points, id) {
@@ -225,22 +323,28 @@ function convertPoint(point) {
   return [x, y];
 }
 
-function getCenter(pointIds) {
-  const [xs, ys] = pointIds.reduce(
+function getSpecialPoints(positions) {
+  const [xs, ys] = positions.reduce(
     (acc, id) => {
-      const point = convertPoint(getPointById(data.points, pointIds[id]));
-      acc[0].push(point[0]);
-      acc[1].push(point[1]);
-
+      acc[0].push(id.x);
+      acc[1].push(id.y);
       return acc;
     },
     [[], []],
   );
 
-  const x = Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) / 2;
-  const y = Math.min(...ys) + (Math.max(...ys) - Math.min(...ys)) / 2;
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const centerX = minX + (maxX - minX) / 2;
+  const centerY = minY + (maxY - minY) / 2;
 
-  return [x, y];
+  return {
+    center: { x: centerX, y: centerY },
+    min: { x: minX, y: minY },
+    max: { x: maxX, y: maxY },
+  };
 }
 
 function onresize() {
@@ -278,11 +382,29 @@ function onmousemove(e) {
 
   camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
   camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+
+  while (camera.x < data.minx) {
+    camera.x += data.maxx - data.minx;
+  }
+  while (camera.x > data.maxx) {
+    camera.x -= data.maxx - data.minx;
+  }
+  if (camera.y < data.miny) {
+    camera.y = data.miny;
+  }
+  if (camera.y > data.maxy) {
+    camera.y = data.maxy;
+  }
   render();
 }
 
 function onwheel(e) {
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
+
+  if (camera.zoom < 1) {
+    camera.zoom = 1;
+  }
+
   render();
 }
 
