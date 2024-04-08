@@ -30,10 +30,8 @@ function render() {
   // data.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
 
-  // map border
+  // render pre-hud
   renderBorder();
-
-  // render scale
   renderScale();
 }
 
@@ -278,6 +276,19 @@ function onmousemove(e) {
 
   camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
   camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+
+  while (camera.x < data.minx) {
+    camera.x += data.maxx - data.minx;
+  }
+  while (camera.x > data.maxx) {
+    camera.x -= data.maxx - data.minx;
+  }
+  if (camera.y < data.miny) {
+    camera.y = data.miny;
+  }
+  if (camera.y > data.maxy) {
+    camera.y = data.maxy;
+  }
   render();
 }
 
