@@ -1,0 +1,42 @@
+{
+  "minx": 0,
+  "maxx": 1,
+  "miny": 0,
+  "maxy": 1,
+  "width": 1.0,
+  "height": 1.0,
+  "points": [
+    { "id": 0, "x": 0.1, "y": 0.1 },
+    { "id": 1, "x": 0.1, "y": 0.2 },
+    { "id": 2, "x": 0.9, "y": 0.1 },
+    { "id": 3, "x": 0.9, "y": 0.2 }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "layer": 0,
+      "points": [0, 2, 3, 1],
+      "name": "사각형",
+      "color": "#fdde59",
+      "opacity": 0.2
+    }
+  ],
+  "paths": [
+    {
+      "id": 1,
+      "layer": 1,
+      "points": [0, 2, 3, 1],
+      "name": "선",
+      "color": "red",
+      "width": 2
+    }
+  ],
+  "places": [
+    {
+      "id": 2,
+      "layer": 1,
+      "point": 2,
+      "name": "거점"
+    }
+  ]
+}
