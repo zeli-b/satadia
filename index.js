@@ -1,9 +1,4 @@
-const data = {
-  points: [],
-  regions: [],
-  paths: [],
-  places: [],
-};
+let data;
 
 const COLOR_OCEAN = "#5a89a8";
 
@@ -17,16 +12,65 @@ let texts = [];
 function tick() {}
 
 function render() {
+  if (data === undefined) {
+    return;
+  }
+
+  // initialise texts
   texts = [];
 
+  // background
   context.fillStyle = COLOR_OCEAN;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
+  // render data
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
   // data.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
+
+  // render scale
+  renderScale();
+}
+
+function stringifyLength(length) {
+  if (length >= 1000) {
+    return `${length / 1000}km`;
+  }
+  if (length < 1) {
+    return `${length * 1000}mm`;
+  }
+
+  return `${length}m`;
+}
+
+function renderScale() {
+  const minimalRodLength = 100;
+  const unitPerPixel = minimalRodLength / camera.zoom; // 화면의 MRL 픽셀이 좌표상 거리로 몇 단위이냐
+  const distancePerUnit = data.width / (data.maxx - data.minx); // 좌표상 거리 1이 몇 미터냐
+  const distancePerPixel = distancePerUnit * unitPerPixel; // 화면의 MRL 픽셀이 몇 미터냐
+
+  let goodUnit = Math.pow(10, Math.ceil(Math.log10(distancePerPixel))); // [m]
+  let rodLength = (goodUnit / distancePerPixel) * minimalRodLength;
+
+  while (rodLength >= 250) {
+    rodLength /= 2;
+    goodUnit /= 2;
+  }
+
+  context.lineWidth = 5;
+  context.beginPath();
+  context.moveTo(canvas.width - 20 - rodLength, canvas.height - 20);
+  context.lineTo(canvas.width - 20, canvas.height - 20);
+  context.stroke();
+
+  context.textAlign = "right";
+  context.fillText(
+    stringifyLength(goodUnit),
+    canvas.width - 20,
+    canvas.height - 40,
+  );
 }
 
 function renderPoint(point) {
@@ -245,11 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      const json = JSON.parse(e.target.result);
-      data.points = json.points || [];
-      data.regions = json.regions || [];
-      data.paths = json.paths || [];
-      data.places = json.places || [];
+      data = JSON.parse(e.target.result);
 
       render();
     };
