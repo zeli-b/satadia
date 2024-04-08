@@ -30,8 +30,24 @@ function render() {
   // data.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
 
+  // map border
+  renderBorder();
+
   // render scale
   renderScale();
+}
+
+function renderBorder() {
+  let [startX, startY] = convertPoint({ x: data.minx, y: data.miny });
+  let [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
+
+  context.beginPath();
+  context.moveTo(startX, startY);
+  context.lineTo(endX, startY);
+  context.lineTo(endX, endY);
+  context.lineTo(startX, endY);
+  context.lineTo(startX, startY);
+  context.stroke();
 }
 
 function stringifyLength(length) {
