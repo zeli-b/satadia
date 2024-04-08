@@ -1,65 +1,4 @@
-const DATA = {
-  minx: 0,
-  maxx: 2,
-  miny: 0,
-  maxy: 2,
-  width: 200.0,
-  height: 200.0,
-  points: [
-    { id: 0, x: 0.1, y: 0.1 },
-    { id: 1, x: 0.1, y: 0.2 },
-    { id: 2, x: 0.2, y: 0.1 },
-    { id: 3, x: 0.2, y: 0.2 },
-    { id: 4, x: 0.15, y: 0.1 },
-    { id: 5, x: 0.15, y: 0.2 },
-    { id: 6, x: 0.15, y: 0.15 },
-    { id: 7, x: 0.12, y: 0.17 },
-  ],
-  regions: [
-    {
-      id: 0,
-      layer: 0,
-      points: [0, 4, 1, 3, 5, 2],
-      name: "사각형",
-      color: "#fdde59",
-      opacity: 0.2,
-    },
-  ],
-  paths: [
-    {
-      id: 0,
-      layer: 1,
-      points: [4, 6, 5],
-      name: "세로선",
-      color: "black",
-      width: 2,
-    },
-    {
-      id: 0,
-      layer: 1,
-      points: [0, 4, 2],
-      name: "가로선",
-      color: "red",
-      width: 2,
-    },
-    {
-      id: 0,
-      layer: 1,
-      points: [2, 5, 3],
-      name: "꺾인 선",
-      color: "blue",
-      width: 2,
-    },
-  ],
-  places: [
-    {
-      id: 0,
-      layer: 1,
-      point: 7,
-      name: "거점",
-    },
-  ],
-};
+let data;
 
 const COLOR_OCEAN = "#5a89a8";
 
@@ -73,6 +12,10 @@ let texts = [];
 function tick() {}
 
 function render() {
+  if (data === undefined) {
+    return;
+  }
+
   // initialise texts
   texts = [];
 
@@ -81,10 +24,10 @@ function render() {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   // render data
-  DATA.regions.forEach((region) => renderRegion(region));
-  DATA.paths.forEach((path) => renderPath(path));
-  DATA.places.forEach((place) => renderPlace(place));
-  // DATA.points.forEach((point) => renderPoint(point));
+  data.regions.forEach((region) => renderRegion(region));
+  data.paths.forEach((path) => renderPath(path));
+  data.places.forEach((place) => renderPlace(place));
+  // data.points.forEach((point) => renderPoint(point));
   texts.forEach((text) => renderText(text));
 
   // render scale
@@ -105,7 +48,7 @@ function stringifyLength(length) {
 function renderScale() {
   const minimalRodLength = 100;
   const unitPerPixel = minimalRodLength / camera.zoom; // 화면의 MRL 픽셀이 좌표상 거리로 몇 단위이냐
-  const distancePerUnit = DATA.width / (DATA.maxx - DATA.minx); // 좌표상 거리 1이 몇 미터냐
+  const distancePerUnit = data.width / (data.maxx - data.minx); // 좌표상 거리 1이 몇 미터냐
   const distancePerPixel = distancePerUnit * unitPerPixel; // 화면의 MRL 픽셀이 몇 미터냐
 
   let goodUnit = Math.pow(10, Math.ceil(Math.log10(distancePerPixel))); // [m]
@@ -141,9 +84,9 @@ function renderRegion(region) {
   const { points } = region;
 
   context.beginPath();
-  context.moveTo(...convertPoint(getPointById(DATA.points, points[0])));
+  context.moveTo(...convertPoint(getPointById(data.points, points[0])));
   for (let i = 1; i < points.length; i++) {
-    context.lineTo(...convertPoint(getPointById(DATA.points, points[i])));
+    context.lineTo(...convertPoint(getPointById(data.points, points[i])));
   }
   context.closePath();
 
@@ -165,9 +108,9 @@ function renderPath(path) {
   const { points } = path;
 
   context.beginPath();
-  context.moveTo(...convertPoint(getPointById(DATA.points, points[0])));
+  context.moveTo(...convertPoint(getPointById(data.points, points[0])));
   for (let i = 1; i < points.length; i++) {
-    context.lineTo(...convertPoint(getPointById(DATA.points, points[i])));
+    context.lineTo(...convertPoint(getPointById(data.points, points[i])));
   }
 
   context.strokeStyle = path.color;
@@ -181,12 +124,12 @@ function renderPath(path) {
   for (let indexes of [[0, 1], [points.length - 1, points.length - 2]]) {
     margin = { left: 0, right: 0, top: 0, bottom: 0 };
     if (
-      Math.abs(getPointById(DATA.points, points[indexes[0]]).x - getPointById(DATA.points, points[indexes[1]]).x)
-      > Math.abs(getPointById(DATA.points, points[indexes[0]]).y - getPointById(DATA.points, points[indexes[1]]).y)
+      Math.abs(getPointById(data.points, points[indexes[0]]).x - getPointById(data.points, points[indexes[1]]).x)
+      > Math.abs(getPointById(data.points, points[indexes[0]]).y - getPointById(data.points, points[indexes[1]]).y)
     ) {
       // horizontal
       baseline = "middle";
-      if (getPointById(DATA.points, points[indexes[0]]).x < getPointById(DATA.points, points[indexes[1]]).x) {
+      if (getPointById(data.points, points[indexes[0]]).x < getPointById(data.points, points[indexes[1]]).x) {
         // to right
         align = "right";
         margin.right = 12;
@@ -198,7 +141,7 @@ function renderPath(path) {
     } else {
       // vertical
       align = "center";
-      if (getPointById(DATA.points, points[indexes[0]]).y < getPointById(DATA.points, points[indexes[1]]).y) {
+      if (getPointById(data.points, points[indexes[0]]).y < getPointById(data.points, points[indexes[1]]).y) {
         // to bottom
         baseline = "bottom";
         margin.bottom = 12;
@@ -211,8 +154,8 @@ function renderPath(path) {
 
     texts.push({
       text: path.name,
-      x: convertPoint(getPointById(DATA.points, points[indexes[0]]))[0],
-      y: convertPoint(getPointById(DATA.points, points[indexes[0]]))[1],
+      x: convertPoint(getPointById(data.points, points[indexes[0]]))[0],
+      y: convertPoint(getPointById(data.points, points[indexes[0]]))[1],
       font: "16pt Pretendard JP",
       align,
       baseline,
@@ -222,7 +165,7 @@ function renderPath(path) {
 }
 
 function renderPlace(place) {
-  const point = getPointById(DATA.points, place.point);
+  const point = getPointById(data.points, place.point);
 
   context.beginPath();
   context.arc(...convertPoint(point), 8, 0, Math.PI * 2, false);
@@ -269,7 +212,7 @@ function convertPoint(point) {
 function getCenter(pointIds) {
   const [xs, ys] = pointIds.reduce(
     (acc, id) => {
-      const point = convertPoint(getPointById(DATA.points, pointIds[id]));
+      const point = convertPoint(getPointById(data.points, pointIds[id]));
       acc[0].push(point[0]);
       acc[1].push(point[1]);
 
@@ -337,4 +280,20 @@ document.addEventListener("DOMContentLoaded", () => {
   canvas.addEventListener("mouseup", onmouseup);
   canvas.addEventListener("mousemove", onmousemove);
   canvas.addEventListener("wheel", onwheel);
+
+  document.getElementById("import").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+
+    if (file.name.split(".").pop() != "json") return;
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      data = JSON.parse(e.target.result);
+
+      render();
+    };
+
+    reader.readAsText(file);
+  });
 });
