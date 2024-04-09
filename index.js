@@ -435,3 +435,16 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsText(file);
   });
 });
+
+function save() {
+  const text = JSON.stringify(data);
+  const link = document.createElement("a");
+
+  link.href = URL.createObjectURL(
+    new Blob([text], { type: "application/json" }),
+  );
+  link.download = new Date().getTime() + ".json";
+  link.click();
+
+  URL.revokeObjectURL(link.href);
+}
