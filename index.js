@@ -1,4 +1,4 @@
-let data;
+let data = newData();
 
 const COLOR_OCEAN = "#5a89a8";
 
@@ -35,6 +35,7 @@ function renderBorder() {
   const [endX, endY] = convertPoint({ x: data.maxx, y: data.maxy });
   const width = endX - startX;
 
+  context.lineWidth = 1;
   context.beginPath();
 
   context.moveTo(0, startY);
@@ -81,6 +82,8 @@ function renderScale() {
   context.lineTo(canvas.width - 20, canvas.height - 20);
   context.stroke();
 
+  context.fillStyle = "black";
+  context.font = "16pt Pretendard JP";
   context.textAlign = "right";
   context.fillText(
     stringifyLength(goodUnit),
@@ -435,6 +438,21 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsText(file);
   });
 });
+
+function newData() {
+  return {
+    minx: 0,
+    maxx: 1,
+    miny: 0,
+    maxy: 1,
+    width: 1,
+    height: 1,
+    points: [],
+    regions: [],
+    paths: [],
+    places: [],
+  };
+}
 
 function save() {
   const text = JSON.stringify(data);
