@@ -466,3 +466,8 @@ function save() {
 
   URL.revokeObjectURL(link.href);
 }
+
+function emptyProject() {
+  data = newData();
+  render();
+}
