@@ -379,6 +379,7 @@ function onmouseup(e) {
   }
 
   dragging = false;
+  canvas.style.cursor = "";
 }
 
 function onmousemove(e) {
