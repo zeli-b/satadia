@@ -368,6 +368,8 @@ function onmousedown(e) {
   }
 
   dragging = true;
+
+  canvas.style.cursor = "grabbing";
 }
 
 function onmouseup(e) {
