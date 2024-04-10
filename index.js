@@ -85,6 +85,7 @@ function renderScale() {
   context.fillStyle = "black";
   context.font = "16pt Pretendard JP";
   context.textAlign = "right";
+  context.textBaseline = "middle";
   context.fillText(
     stringifyLength(goodUnit),
     canvas.width - 20,
