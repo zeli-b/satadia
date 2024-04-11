@@ -406,6 +406,10 @@ function onmousemove(e) {
 }
 
 function onwheel(e) {
+  if (e.composed && e.ctrlKey) {
+    e.preventDefault();
+  }
+
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
 
   if (camera.zoom < 1) {
