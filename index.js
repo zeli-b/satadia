@@ -8,9 +8,13 @@ let canvas;
 let context;
 let camera = { x: 0.15, y: 0.15, zoom: 5000 };
 
-function tick() {}
-
 function render() {
+  if (tool === TOOL_HAND && canvas.style.cursor === "") {
+    canvas.style.cursor = "grab";
+  } else {
+    canvas.style.cursor = "";
+  }
+
   if (data === undefined) {
     return;
   }
@@ -23,7 +27,9 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  // data.points.forEach((point) => renderPoint(point));
+  if (tool === TOOL_POINT_SELECT) {
+    data.points.forEach((point) => renderPoint(point));
+  }
 
   // render pre-hud
   renderBorder();
@@ -368,9 +374,13 @@ function onmousedown(e) {
     return;
   }
 
-  dragging = true;
+  if (tool === TOOL_HAND) {
+    dragging = true;
 
-  canvas.style.cursor = "grabbing";
+    canvas.style.cursor = "grabbing";
+  } else {
+    canvas.style.cursor = "";
+  }
 }
 
 function onmouseup(e) {
@@ -378,8 +388,10 @@ function onmouseup(e) {
     return;
   }
 
-  dragging = false;
-  canvas.style.cursor = "";
+  if (tool === TOOL_HAND) {
+    dragging = false;
+    canvas.style.cursor = "grab";
+  }
 }
 
 function onmousemove(e) {
@@ -419,6 +431,10 @@ function onwheel(e) {
   render();
 }
 
+let tool;
+const TOOL_HAND = "tool-hand";
+const TOOL_POINT_SELECT = "tool-point-select";
+
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
   context = canvas.getContext("2d");
@@ -445,6 +461,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.readAsText(file);
   });
+
+  document
+    .querySelectorAll("#tool-select-panel>p>input[type=radio]")
+    .forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        tool = e.currentTarget.id;
+        render();
+      });
+    });
 });
 
 function newData() {
