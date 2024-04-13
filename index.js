@@ -27,7 +27,7 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  if (tool === TOOL_POINT_MOVE) {
+  if (tool === TOOL_POINT_MOVE || tool === TOOL_POINT_MAKE) {
     data.points.forEach((point) => renderPoint(point));
   }
 
@@ -396,6 +396,16 @@ function onresize() {
 
 window.addEventListener("resize", onresize);
 
+function newPoint(x, y) {
+  let max = 0;
+  data.points.forEach((point) => {
+    max = Math.max(max, point.id);
+  });
+
+  const id = max + 1;
+  return { id, x, y };
+}
+
 let dragging = false;
 
 let pointSelected;
@@ -410,6 +420,13 @@ function onmousedown(e) {
     canvas.style.cursor = "grabbing";
   } else {
     canvas.style.cursor = "";
+  }
+
+  if (tool === TOOL_POINT_MAKE) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    const point = newPoint(x, y);
+    data.points.push(point);
+    render();
   }
 
   if (tool === TOOL_POINT_MOVE) {
@@ -481,6 +498,7 @@ function onwheel(e) {
 }
 
 const TOOL_HAND = "tool-hand";
+const TOOL_POINT_MAKE = "tool-point-make";
 const TOOL_POINT_MOVE = "tool-point-select";
 let tool = TOOL_HAND;
 
