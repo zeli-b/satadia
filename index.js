@@ -342,8 +342,22 @@ function convertPoint(point) {
 
 function unconvertPoint(x, y) {
   const dpr = window.devicePixelRatio;
-  const cx = ((x - canvas.width / dpr / 2) / camera.zoom) * dpr + camera.x;
-  const cy = ((y - canvas.height / dpr / 2) / camera.zoom) * dpr + camera.y;
+
+  let cx = ((x - canvas.width / dpr / 2) / camera.zoom) * dpr + camera.x;
+  while (cx > data.maxx) {
+    cx -= data.maxx - data.minx;
+  }
+  while (cx < data.minx) {
+    cx += data.maxx - data.minx;
+  }
+
+  let cy = ((y - canvas.height / dpr / 2) / camera.zoom) * dpr + camera.y;
+  if (cy < data.miny) {
+    cy = data.miny;
+  } else if (cy > data.maxy) {
+    cy = data.maxy;
+  }
+
   return [cx, cy];
 }
 
