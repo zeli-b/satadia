@@ -11,7 +11,7 @@ let camera = { x: 0.15, y: 0.15, zoom: 5000 };
 function render() {
   if (tool === TOOL_HAND && canvas.style.cursor === "") {
     canvas.style.cursor = "grab";
-  } else {
+  } else if (tool !== TOOL_HAND) {
     canvas.style.cursor = "";
   }
 
@@ -27,7 +27,7 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  if (tool === TOOL_POINT_SELECT) {
+  if (tool === TOOL_POINT_MOVE) {
     data.points.forEach((point) => renderPoint(point));
   }
 
@@ -100,10 +100,16 @@ function renderScale() {
 }
 
 function renderPoint(point) {
+  const [x, y] = convertPoint(point);
   context.beginPath();
-  context.arc(...convertPoint(point), 3, 0, Math.PI * 2, false);
-  context.fillStyle = "#000";
+  context.arc(x, y, 3, 0, Math.PI * 2, false);
+  context.fillStyle = "black";
   context.fill();
+
+  context.font = "16px Pretendard JP";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(point.id, x, y + 20);
 }
 
 function movePointLeft(point) {
@@ -303,6 +309,7 @@ function renderPlace(place, dx) {
 
   context.font = "16pt Pretendard JP";
   context.textAlign = "left";
+  context.textBaseline = "middle";
   context.fillStyle = "black";
   context.fillText(place.name, realPosition[0] + 16, realPosition[1]);
 
@@ -331,6 +338,13 @@ function convertPoint(point) {
   const x = (point.x - camera.x) * camera.zoom + canvas.width / 2;
   const y = (point.y - camera.y) * camera.zoom + canvas.height / 2;
   return [x, y];
+}
+
+function unconvertPoint(x, y) {
+  const dpr = window.devicePixelRatio;
+  const cx = ((x - canvas.width / dpr / 2) / camera.zoom) * dpr + camera.x;
+  const cy = ((y - canvas.height / dpr / 2) / camera.zoom) * dpr + camera.y;
+  return [cx, cy];
 }
 
 function getSpecialPoints(positions) {
@@ -369,6 +383,8 @@ function onresize() {
 window.addEventListener("resize", onresize);
 
 let dragging = false;
+
+let pointSelected;
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
@@ -381,6 +397,17 @@ function onmousedown(e) {
   } else {
     canvas.style.cursor = "";
   }
+
+  if (tool === TOOL_POINT_MOVE) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    pointSelected = undefined;
+    for (let i = 0; i < data.points.length; i++) {
+      const nowPoint = data.points[i];
+      if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+        pointSelected = nowPoint;
+      }
+    }
+  }
 }
 
 function onmouseup(e) {
@@ -392,28 +419,36 @@ function onmouseup(e) {
     dragging = false;
     canvas.style.cursor = "grab";
   }
+  if (tool === TOOL_POINT_MOVE) {
+    pointSelected = undefined;
+  }
 }
 
 function onmousemove(e) {
-  if (!dragging) {
-    return;
+  if (dragging) {
+    camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
+    camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+
+    while (camera.x < data.minx) {
+      camera.x += data.maxx - data.minx;
+    }
+    while (camera.x > data.maxx) {
+      camera.x -= data.maxx - data.minx;
+    }
+    if (camera.y < data.miny) {
+      camera.y = data.miny;
+    }
+    if (camera.y > data.maxy) {
+      camera.y = data.maxy;
+    }
   }
 
-  camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
-  camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+  if (pointSelected !== undefined) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    pointSelected.x = x;
+    pointSelected.y = y;
+  }
 
-  while (camera.x < data.minx) {
-    camera.x += data.maxx - data.minx;
-  }
-  while (camera.x > data.maxx) {
-    camera.x -= data.maxx - data.minx;
-  }
-  if (camera.y < data.miny) {
-    camera.y = data.miny;
-  }
-  if (camera.y > data.maxy) {
-    camera.y = data.maxy;
-  }
   render();
 }
 
@@ -431,9 +466,9 @@ function onwheel(e) {
   render();
 }
 
-let tool;
 const TOOL_HAND = "tool-hand";
-const TOOL_POINT_SELECT = "tool-point-select";
+const TOOL_POINT_MOVE = "tool-point-select";
+let tool = TOOL_HAND;
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
