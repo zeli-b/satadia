@@ -6,7 +6,11 @@ const COLOR_OCEAN = "#5a89a8";
 let canvas;
 /** @type {CanvasRenderingContext2D} */
 let context;
-let camera = { x: 0.15, y: 0.15, zoom: 5000 };
+let camera = {
+  x: (data.minx + data.maxx) / 2,
+  y: (data.miny + data.maxy) / 2,
+  zoom: 5000,
+};
 
 function render() {
   if (tool === TOOL_HAND && canvas.style.cursor === "") {
