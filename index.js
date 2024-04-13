@@ -500,7 +500,31 @@ function onwheel(e) {
 const TOOL_HAND = "tool-hand";
 const TOOL_POINT_MAKE = "tool-point-make";
 const TOOL_POINT_MOVE = "tool-point-select";
+const toolRadios = {};
 let tool = TOOL_HAND;
+
+let spaceDragToolBuffer;
+
+function onkeydown(e) {
+  if (e.code === "Space" && spaceDragToolBuffer === undefined) {
+    spaceDragToolBuffer = tool;
+    toolRadios[TOOL_HAND].checked = true;
+    tool = TOOL_HAND;
+    render();
+  }
+}
+
+function onkeyup(e) {
+  if (e.code === "Space") {
+    toolRadios[spaceDragToolBuffer].checked = true;
+    tool = spaceDragToolBuffer;
+    spaceDragToolBuffer = undefined;
+    render();
+  }
+}
+
+document.addEventListener("keydown", onkeydown);
+document.addEventListener("keyup", onkeyup);
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
@@ -536,6 +560,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tool = e.currentTarget.id;
         render();
       });
+      toolRadios[radio.id] = radio;
     });
 });
 
