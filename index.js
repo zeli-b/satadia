@@ -107,8 +107,10 @@ function renderScale() {
   );
 }
 
-function renderPoint(point) {
-  const [x, y] = convertPoint(point);
+function renderPoint(point, dx) {
+  if (dx === undefined) dx = 0;
+
+  const [x, y] = convertPoint({ x: point.x + dx, y: point.y });
   context.beginPath();
   context.arc(x, y, 3, 0, Math.PI * 2, false);
   context.fillStyle = "black";
@@ -118,6 +120,23 @@ function renderPoint(point) {
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(point.id, x, y + 20);
+
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: point.x + dx + (data.maxx - data.minx) })[0] <=
+      canvas.width
+  ) {
+    renderPoint(point, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: point.x + dx - (data.maxx - data.minx) })[0] > 0
+  ) {
+    renderPoint(point, dx - (data.maxx - data.minx));
+  }
 }
 
 function movePointLeft(point) {
