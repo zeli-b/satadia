@@ -31,7 +31,11 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  if (tool === TOOL_POINT_MOVE || tool === TOOL_POINT_MAKE) {
+  if (
+    tool === TOOL_POINT_MOVE ||
+    tool === TOOL_POINT_MAKE ||
+    tool === TOOL_POINT_DELETE
+  ) {
     data.points.forEach((point) => renderPoint(point));
   }
 
@@ -445,6 +449,34 @@ function onmousedown(e) {
   }
 }
 
+function isPointUsed(id) {
+  // in region
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    if (region.points.indexOf(id) !== -1) {
+      return true;
+    }
+  }
+
+  // in path
+  for (let i = 0; i < data.paths.length; i++) {
+    const path = data.paths[i];
+    if (path.points.indexOf(id) !== -1) {
+      return true;
+    }
+  }
+
+  // in place
+  for (let i = 0; i < data.places.length; i++) {
+    const place = data.places[i];
+    if (place.point === id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function onmouseup(e) {
   if (e.which !== 1) {
     return;
@@ -454,8 +486,24 @@ function onmouseup(e) {
     dragging = false;
     canvas.style.cursor = "grab";
   }
+
   if (tool === TOOL_POINT_MOVE) {
     pointSelected = undefined;
+  }
+
+  if (tool === TOOL_POINT_DELETE) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    let point;
+    for (let i = 0; i < data.points.length; i++) {
+      const nowPoint = data.points[i];
+      if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+        point = nowPoint;
+      }
+    }
+
+    if (point && !isPointUsed(point.id)) {
+      data.points = data.points.filter((p) => p !== point);
+    }
   }
 }
 
@@ -504,6 +552,7 @@ function onwheel(e) {
 const TOOL_HAND = "tool-hand";
 const TOOL_POINT_MAKE = "tool-point-make";
 const TOOL_POINT_MOVE = "tool-point-select";
+const TOOL_POINT_DELETE = "tool-point-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
