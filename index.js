@@ -544,12 +544,23 @@ function onmouseup(e) {
   if (tool === TOOL_PLACE_MAKE) {
     const point = clickPoint(e);
 
-    if (point !== undefined) {
-      if (getPlaceWithPointId(point.id) === null) {
+    if (point) {
+      if (!getPlaceWithPointId(point.id)) {
         const name = prompt("거점의 이름");
         const layer = prompt("거점 레이어");
         const place = newPlace(point.id, parseInt(layer), name);
         data.places.push(place);
+        render();
+      }
+    }
+  }
+
+  if (tool === TOOL_PLACE_DELETE) {
+    const point = clickPoint(e);
+    if (point) {
+      const thePlace = getPlaceWithPointId(point.id);
+      if (thePlace) {
+        data.places = data.places.filter((place) => place.id !== thePlace.id);
         render();
       }
     }
@@ -603,6 +614,7 @@ const TOOL_POINT_MAKE = "tool-point-make";
 const TOOL_POINT_MOVE = "tool-point-select";
 const TOOL_POINT_DELETE = "tool-point-delete";
 const TOOL_PLACE_MAKE = "tool-place-make";
+const TOOL_PLACE_DELETE = "tool-place-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
