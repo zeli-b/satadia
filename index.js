@@ -6,11 +6,19 @@ const COLOR_OCEAN = "#5a89a8";
 let canvas;
 /** @type {CanvasRenderingContext2D} */
 let context;
-let camera = { x: 0.15, y: 0.15, zoom: 5000 };
-
-function tick() {}
+let camera = {
+  x: (data.minx + data.maxx) / 2,
+  y: (data.miny + data.maxy) / 2,
+  zoom: 5000,
+};
 
 function render() {
+  if (tool === TOOL_HAND && canvas.style.cursor === "") {
+    canvas.style.cursor = "grab";
+  } else if (tool !== TOOL_HAND) {
+    canvas.style.cursor = "";
+  }
+
   if (data === undefined) {
     return;
   }
@@ -23,7 +31,9 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  // data.points.forEach((point) => renderPoint(point));
+  if (tool !== TOOL_HAND) {
+    data.points.forEach((point) => renderPoint(point));
+  }
 
   // render pre-hud
   renderBorder();
@@ -93,11 +103,36 @@ function renderScale() {
   );
 }
 
-function renderPoint(point) {
+function renderPoint(point, dx) {
+  if (dx === undefined) dx = 0;
+
+  const [x, y] = convertPoint({ x: point.x + dx, y: point.y });
   context.beginPath();
-  context.arc(...convertPoint(point), 3, 0, Math.PI * 2, false);
-  context.fillStyle = "#000";
+  context.arc(x, y, 3, 0, Math.PI * 2, false);
+  context.fillStyle = "black";
   context.fill();
+
+  context.font = "16px Pretendard JP";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(point.id, x, y + 20);
+
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: point.x + dx + (data.maxx - data.minx) })[0] <=
+      canvas.width
+  ) {
+    renderPoint(point, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: point.x + dx - (data.maxx - data.minx) })[0] > 0
+  ) {
+    renderPoint(point, dx - (data.maxx - data.minx));
+  }
 }
 
 function movePointLeft(point) {
@@ -297,6 +332,7 @@ function renderPlace(place, dx) {
 
   context.font = "16pt Pretendard JP";
   context.textAlign = "left";
+  context.textBaseline = "middle";
   context.fillStyle = "black";
   context.fillText(place.name, realPosition[0] + 16, realPosition[1]);
 
@@ -325,6 +361,27 @@ function convertPoint(point) {
   const x = (point.x - camera.x) * camera.zoom + canvas.width / 2;
   const y = (point.y - camera.y) * camera.zoom + canvas.height / 2;
   return [x, y];
+}
+
+function unconvertPoint(x, y) {
+  const dpr = window.devicePixelRatio;
+
+  let cx = ((x - canvas.width / dpr / 2) / camera.zoom) * dpr + camera.x;
+  while (cx > data.maxx) {
+    cx -= data.maxx - data.minx;
+  }
+  while (cx < data.minx) {
+    cx += data.maxx - data.minx;
+  }
+
+  let cy = ((y - canvas.height / dpr / 2) / camera.zoom) * dpr + camera.y;
+  if (cy < data.miny) {
+    cy = data.miny;
+  } else if (cy > data.maxy) {
+    cy = data.maxy;
+  }
+
+  return [cx, cy];
 }
 
 function getSpecialPoints(positions) {
@@ -362,15 +419,104 @@ function onresize() {
 
 window.addEventListener("resize", onresize);
 
+function newPoint(x, y) {
+  let max = 0;
+  data.points.forEach((point) => {
+    max = Math.max(max, point.id);
+  });
+
+  const id = max + 1;
+  return { id, x, y };
+}
+
 let dragging = false;
+
+let pointSelected;
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
   }
 
-  dragging = true;
+  if (tool === TOOL_HAND) {
+    dragging = true;
 
-  canvas.style.cursor = "grabbing";
+    canvas.style.cursor = "grabbing";
+  } else {
+    canvas.style.cursor = "";
+  }
+
+  if (tool === TOOL_POINT_MAKE) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    const point = newPoint(x, y);
+    data.points.push(point);
+    render();
+  }
+
+  if (tool === TOOL_POINT_MOVE) {
+    pointSelected = clickPoint(e);
+  }
+}
+
+function isPointUsed(id) {
+  // in region
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    if (region.points.indexOf(id) !== -1) {
+      return true;
+    }
+  }
+
+  // in path
+  for (let i = 0; i < data.paths.length; i++) {
+    const path = data.paths[i];
+    if (path.points.indexOf(id) !== -1) {
+      return true;
+    }
+  }
+
+  // in place
+  for (let i = 0; i < data.places.length; i++) {
+    const place = data.places[i];
+    if (place.point === id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function clickPoint(e) {
+  const [x, y] = unconvertPoint(e.clientX, e.clientY);
+  let point;
+  for (let i = 0; i < data.points.length; i++) {
+    const nowPoint = data.points[i];
+    if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+      point = nowPoint;
+    }
+  }
+
+  return point;
+}
+
+function newPlace(pointId, layer, name) {
+  let max = 0;
+  data.points.forEach((point) => {
+    max = Math.max(max, point.id);
+  });
+
+  return { id: max + 1, layer, point: pointId, name };
+}
+
+function getPlaceWithPointId(pointId) {
+  for (let i = 0; i < data.places.length; i++) {
+    const place = data.places[i];
+
+    if (place.point === pointId) {
+      return place;
+    }
+  }
+
+  return null;
 }
 
 function onmouseup(e) {
@@ -378,30 +524,74 @@ function onmouseup(e) {
     return;
   }
 
-  dragging = false;
-  canvas.style.cursor = "";
+  if (tool === TOOL_HAND) {
+    dragging = false;
+    canvas.style.cursor = "grab";
+  }
+
+  if (tool === TOOL_POINT_MOVE) {
+    pointSelected = undefined;
+  }
+
+  if (tool === TOOL_POINT_DELETE) {
+    const point = clickPoint(e);
+
+    if (point && !isPointUsed(point.id)) {
+      data.points = data.points.filter((p) => p !== point);
+    }
+  }
+
+  if (tool === TOOL_PLACE_MAKE) {
+    const point = clickPoint(e);
+
+    if (point) {
+      if (!getPlaceWithPointId(point.id)) {
+        const name = prompt("거점의 이름");
+        const layer = prompt("거점 레이어");
+        const place = newPlace(point.id, parseInt(layer), name);
+        data.places.push(place);
+        render();
+      }
+    }
+  }
+
+  if (tool === TOOL_PLACE_DELETE) {
+    const point = clickPoint(e);
+    if (point) {
+      const thePlace = getPlaceWithPointId(point.id);
+      if (thePlace) {
+        data.places = data.places.filter((place) => place.id !== thePlace.id);
+        render();
+      }
+    }
+  }
 }
 
 function onmousemove(e) {
-  if (!dragging) {
-    return;
+  if (dragging) {
+    camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
+    camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+
+    while (camera.x < data.minx) {
+      camera.x += data.maxx - data.minx;
+    }
+    while (camera.x > data.maxx) {
+      camera.x -= data.maxx - data.minx;
+    }
+    if (camera.y < data.miny) {
+      camera.y = data.miny;
+    }
+    if (camera.y > data.maxy) {
+      camera.y = data.maxy;
+    }
   }
 
-  camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
-  camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
+  if (pointSelected !== undefined) {
+    const [x, y] = unconvertPoint(e.clientX, e.clientY);
+    pointSelected.x = x;
+    pointSelected.y = y;
+  }
 
-  while (camera.x < data.minx) {
-    camera.x += data.maxx - data.minx;
-  }
-  while (camera.x > data.maxx) {
-    camera.x -= data.maxx - data.minx;
-  }
-  if (camera.y < data.miny) {
-    camera.y = data.miny;
-  }
-  if (camera.y > data.maxy) {
-    camera.y = data.maxy;
-  }
   render();
 }
 
@@ -418,6 +608,38 @@ function onwheel(e) {
 
   render();
 }
+
+const TOOL_HAND = "tool-hand";
+const TOOL_POINT_MAKE = "tool-point-make";
+const TOOL_POINT_MOVE = "tool-point-select";
+const TOOL_POINT_DELETE = "tool-point-delete";
+const TOOL_PLACE_MAKE = "tool-place-make";
+const TOOL_PLACE_DELETE = "tool-place-delete";
+const toolRadios = {};
+let tool = TOOL_HAND;
+
+let spaceDragToolBuffer;
+
+function onkeydown(e) {
+  if (e.code === "Space" && spaceDragToolBuffer === undefined) {
+    spaceDragToolBuffer = tool;
+    toolRadios[TOOL_HAND].checked = true;
+    tool = TOOL_HAND;
+    render();
+  }
+}
+
+function onkeyup(e) {
+  if (e.code === "Space") {
+    toolRadios[spaceDragToolBuffer].checked = true;
+    tool = spaceDragToolBuffer;
+    spaceDragToolBuffer = undefined;
+    render();
+  }
+}
+
+document.addEventListener("keydown", onkeydown);
+document.addEventListener("keyup", onkeyup);
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.querySelector("#canvas");
@@ -445,6 +667,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.readAsText(file);
   });
+
+  document
+    .querySelectorAll("#tool-select-panel>p>input[type=radio]")
+    .forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        tool = e.currentTarget.id;
+        render();
+      });
+      toolRadios[radio.id] = radio;
+    });
 });
 
 function newData() {
