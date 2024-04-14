@@ -696,30 +696,40 @@ function onmouseup(e) {
   }
 
   if (tool === TOOL_PATH_INSERT) {
-    pathInsertSelected;
     const point = clickPoint(e);
 
-    const remainder = data.paths[pathInsertSelected[0]].points.splice(
-      pathInsertSelected[1],
-    );
-    data.paths[pathInsertSelected[0]].points = [
-      ...data.paths[pathInsertSelected[0]].points,
-      point.id,
-      ...remainder,
-    ];
+    if (pathInsertSelected && point) {
+      const remainder = data.paths[pathInsertSelected[0]].points.splice(
+        pathInsertSelected[1],
+      );
+
+      data.paths[pathInsertSelected[0]].points = [
+        ...data.paths[pathInsertSelected[0]].points,
+        point.id,
+        ...remainder,
+      ];
+
+      render();
+
+      pathInsertSelected = undefined;
+    }
   }
 
   if (tool === TOOL_PATH_REMOVE) {
     const point = clickPoint(e);
 
-    for (let i = 0; i < data.paths.length; i++) {
-      const path = data.paths[i];
+    if (point) {
+      for (let i = 0; i < data.paths.length; i++) {
+        const path = data.paths[i];
 
-      if (path.points.indexOf(point.id) === -1) {
-        continue;
+        if (path.points.indexOf(point.id) === -1) {
+          continue;
+        }
+
+        path.points = path.points.filter((p) => p !== point.id);
       }
 
-      path.points = path.points.filter((p) => p !== point.id);
+      render();
     }
   }
 
