@@ -1,4 +1,5 @@
 let data = newData();
+let pointMap = {};
 
 const COLOR_OCEAN = "#5a89a8";
 
@@ -107,6 +108,14 @@ function renderPoint(point, dx) {
   if (dx === undefined) dx = 0;
 
   const [x, y] = convertPoint({ x: point.x + dx, y: point.y });
+
+  if (x < 0 || x > canvas.width) {
+    return;
+  }
+  if (y < 0 || y > canvas.height) {
+    return;
+  }
+
   context.beginPath();
   context.arc(x, y, 3, 0, Math.PI * 2, false);
   context.fillStyle = "black";
@@ -185,6 +194,21 @@ function renderRegion(region, dx) {
       id: position.id,
     };
   });
+  const { center, min, max } = getSpecialPoints(positions);
+
+  if (convertPoint(max)[0] < 0) {
+    return;
+  }
+  if (convertPoint(max)[1] < 0) {
+    return;
+  }
+  if (convertPoint(min)[0] > canvas.width) {
+    return;
+  }
+  if (convertPoint(min)[1] > canvas.height) {
+    return;
+  }
+
   context.beginPath();
   context.moveTo(...convertPoint(positions[0]));
   for (let i = 1; i < points.length; i++) {
@@ -199,7 +223,6 @@ function renderRegion(region, dx) {
   context.globalAlpha = 1.0;
 
   // -- fill text
-  const { center, min, max } = getSpecialPoints(positions);
   const realCenter = convertPoint(center);
   context.font = "32pt Pretendard JP";
   context.fillStyle = "black";
@@ -354,7 +377,13 @@ function renderPlace(place, dx) {
 }
 
 function getPointById(points, id) {
-  return points.find((point) => point.id == id);
+  if (pointMap[id] === undefined) {
+    const point = points.find((point) => point.id == id);
+    pointMap[id] = point;
+    return point;
+  }
+
+  return pointMap[id];
 }
 
 function convertPoint(point) {
@@ -584,15 +613,16 @@ function onmousemove(e) {
     if (camera.y > data.maxy) {
       camera.y = data.maxy;
     }
+
+    render();
   }
 
   if (pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
+    render();
   }
-
-  render();
 }
 
 function onwheel(e) {
@@ -602,8 +632,8 @@ function onwheel(e) {
 
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
 
-  if (camera.zoom < 1) {
-    camera.zoom = 1;
+  if (camera.zoom < 0.1) {
+    camera.zoom = 0.1;
   }
 
   render();
@@ -661,6 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
+      pointMap = {};
 
       render();
     };
@@ -709,5 +740,6 @@ function save() {
 
 function emptyProject() {
   data = newData();
+  pointMap = {};
   render();
 }
