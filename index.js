@@ -121,10 +121,12 @@ function renderPoint(point, dx) {
   context.fillStyle = "black";
   context.fill();
 
+  /*
   context.font = "16px Pretendard JP";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(point.id, x, y + 20);
+  */
 
   // -- cylinderical render
   // to right
