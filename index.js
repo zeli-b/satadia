@@ -196,6 +196,23 @@ function renderRegion(region, dx) {
   });
   const { center, min, max } = getSpecialPoints(positions);
 
+  // -- cylinderical render
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderRegion(region, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderRegion(region, dx - (data.maxx - data.minx));
+  }
+
   if (convertPoint(max)[0] < 0) {
     return;
   }
@@ -229,23 +246,6 @@ function renderRegion(region, dx) {
   context.textBaseline = "middle";
   context.textAlign = "center";
   context.fillText(region.name, realCenter[0], realCenter[1]);
-
-  // -- cylinderical render
-  // to right
-  if (
-    dx >= 0 &&
-    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
-      canvas.width
-  ) {
-    renderRegion(region, dx + (data.maxx - data.minx));
-  }
-  // to left
-  if (
-    dx <= 0 &&
-    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
-  ) {
-    renderRegion(region, dx - (data.maxx - data.minx));
-  }
 }
 
 function renderPath(path, dx) {
