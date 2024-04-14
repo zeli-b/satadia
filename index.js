@@ -1,4 +1,5 @@
 let data = newData();
+let pointMap = {};
 
 const COLOR_OCEAN = "#5a89a8";
 
@@ -107,15 +108,25 @@ function renderPoint(point, dx) {
   if (dx === undefined) dx = 0;
 
   const [x, y] = convertPoint({ x: point.x + dx, y: point.y });
+
+  if (x < 0 || x > canvas.width) {
+    return;
+  }
+  if (y < 0 || y > canvas.height) {
+    return;
+  }
+
   context.beginPath();
   context.arc(x, y, 3, 0, Math.PI * 2, false);
   context.fillStyle = "black";
   context.fill();
 
+  /*
   context.font = "16px Pretendard JP";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(point.id, x, y + 20);
+  */
 
   // -- cylinderical render
   // to right
@@ -151,12 +162,12 @@ function getPointPositions(points) {
   let point, previousPoint;
   const result = [];
 
-  point = getPointById(data.points, points[0]);
+  point = getPointById(points[0]);
   result.push(point);
   previousPoint = point;
 
   for (let i = 1; i < points.length; i++) {
-    point = getPointById(data.points, points[i]);
+    point = getPointById(points[i]);
 
     while (point.x - previousPoint.x > (data.maxx - data.minx) / 2) {
       point = movePointLeft(point);
@@ -185,27 +196,7 @@ function renderRegion(region, dx) {
       id: position.id,
     };
   });
-  context.beginPath();
-  context.moveTo(...convertPoint(positions[0]));
-  for (let i = 1; i < points.length; i++) {
-    context.lineTo(...convertPoint(positions[i]));
-  }
-  context.closePath();
-
-  // -- fill polygon
-  context.fillStyle = region.color;
-  context.globalAlpha = region.opacity;
-  context.fill();
-  context.globalAlpha = 1.0;
-
-  // -- fill text
   const { center, min, max } = getSpecialPoints(positions);
-  const realCenter = convertPoint(center);
-  context.font = "32pt Pretendard JP";
-  context.fillStyle = "black";
-  context.textBaseline = "middle";
-  context.textAlign = "center";
-  context.fillText(region.name, realCenter[0], realCenter[1]);
 
   // -- cylinderical render
   // to right
@@ -223,6 +214,32 @@ function renderRegion(region, dx) {
   ) {
     renderRegion(region, dx - (data.maxx - data.minx));
   }
+
+  if (convertPoint(max)[0] < 0) return;
+  if (convertPoint(max)[1] < 0) return;
+  if (convertPoint(min)[0] > canvas.width) return;
+  if (convertPoint(min)[1] > canvas.height) return;
+
+  context.beginPath();
+  context.moveTo(...convertPoint(positions[0]));
+  for (let i = 1; i < points.length; i++) {
+    context.lineTo(...convertPoint(positions[i]));
+  }
+  context.closePath();
+
+  // -- fill polygon
+  context.fillStyle = region.color;
+  context.globalAlpha = region.opacity;
+  context.fill();
+  context.globalAlpha = 1.0;
+
+  // -- fill text
+  const realCenter = convertPoint(center);
+  context.font = "32pt Pretendard JP";
+  context.fillStyle = "black";
+  context.textBaseline = "middle";
+  context.textAlign = "center";
+  context.fillText(region.name, realCenter[0], realCenter[1]);
 }
 
 function renderPath(path, dx) {
@@ -230,7 +247,7 @@ function renderPath(path, dx) {
 
   const { points } = path;
 
-  // -- draw polygon
+  // -- cylinderical render
   const positions = getPointPositions(points).map((position) => {
     return {
       x: position.x + dx,
@@ -239,6 +256,30 @@ function renderPath(path, dx) {
     };
   });
 
+  const { min, max } = getSpecialPoints(positions);
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderPath(path, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderPath(path, dx - (data.maxx - data.minx));
+  }
+
+  // -- get min max and check if renderable
+  if (convertPoint(max)[0] < 0) return;
+  if (convertPoint(min)[0] > canvas.width) return;
+  if (convertPoint(max)[1] < 0) return;
+  if (convertPoint(min)[1] > canvas.height) return;
+
+  // -- draw polygon
   context.strokeStyle = path.color;
   context.lineWidth = path.width;
   context.beginPath();
@@ -295,30 +336,12 @@ function renderPath(path, dx) {
       realPosition[1] + margin.top - margin.bottom,
     );
   }
-
-  // -- cylinderical render
-  const { min, max } = getSpecialPoints(positions);
-  // to right
-  if (
-    dx >= 0 &&
-    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
-      canvas.width
-  ) {
-    renderPath(path, dx + (data.maxx - data.minx));
-  }
-  // to left
-  if (
-    dx <= 0 &&
-    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
-  ) {
-    renderPath(path, dx - (data.maxx - data.minx));
-  }
 }
 
 function renderPlace(place, dx) {
   if (dx === undefined) dx = 0;
 
-  let point = getPointById(data.points, place.point);
+  let point = getPointById(place.point);
   point = { x: point.x + dx, y: point.y };
   const realPosition = convertPoint(point);
 
@@ -353,8 +376,14 @@ function renderPlace(place, dx) {
   }
 }
 
-function getPointById(points, id) {
-  return points.find((point) => point.id == id);
+function getPointById(id) {
+  if (pointMap[id] === undefined) {
+    const point = data.points.find((point) => point.id == id);
+    pointMap[id] = point;
+    return point;
+  }
+
+  return pointMap[id];
 }
 
 function convertPoint(point) {
@@ -584,15 +613,16 @@ function onmousemove(e) {
     if (camera.y > data.maxy) {
       camera.y = data.maxy;
     }
+
+    render();
   }
 
   if (pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
+    render();
   }
-
-  render();
 }
 
 function onwheel(e) {
@@ -602,8 +632,8 @@ function onwheel(e) {
 
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
 
-  if (camera.zoom < 1) {
-    camera.zoom = 1;
+  if (camera.zoom < canvas.width / 2 / (data.maxx - data.minx)) {
+    camera.zoom = canvas.width / 2 / (data.maxx - data.minx);
   }
 
   render();
@@ -661,6 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
+      pointMap = {};
 
       render();
     };
@@ -709,5 +740,6 @@ function save() {
 
 function emptyProject() {
   data = newData();
+  pointMap = {};
   render();
 }
