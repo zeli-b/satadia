@@ -10,7 +10,7 @@ let context;
 let camera = {
   x: (data.minx + data.maxx) / 2,
   y: (data.miny + data.maxy) / 2,
-  zoom: 5000,
+  zoom: 1000 / ((data.maxx - data.minx + data.maxy - data.miny) / 4),
 };
 
 function render() {
@@ -692,6 +692,10 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
       pointMap = {};
+      camera.x = (data.maxx + data.minx) / 2;
+      camera.y = (data.maxy + data.miny) / 2;
+      camera.zoom =
+        1000 / ((data.maxx - data.minx + data.maxy - data.miny) / 4);
 
       render();
     };
@@ -741,5 +745,9 @@ function save() {
 function emptyProject() {
   data = newData();
   pointMap = {};
+  camera.x = (data.maxx + data.minx) / 2;
+  camera.y = (data.maxy + data.miny) / 2;
+  camera.zoom = 1000 / ((data.maxx - data.minx + data.maxy - data.miny) / 4);
+
   render();
 }
