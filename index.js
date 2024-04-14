@@ -684,6 +684,22 @@ function onmouseup(e) {
     ];
     render();
   }
+
+  if (tool === TOOL_PATH_REMOVE) {
+    const point = clickPoint(e);
+
+    for (let i = 0; i < data.paths.length; i++) {
+      const path = data.paths[i];
+
+      if (path.points.indexOf(point.id) === -1) {
+        continue;
+      }
+
+      path.points = path.points.filter((p) => p !== point.id);
+    }
+
+    render();
+  }
 }
 
 function onmousemove(e) {
@@ -736,6 +752,7 @@ const TOOL_POINT_DELETE = "tool-point-delete";
 const TOOL_PLACE_MAKE = "tool-place-make";
 const TOOL_PLACE_DELETE = "tool-place-delete";
 const TOOL_PATH_INSERT = "tool-path-insert";
+const TOOL_PATH_REMOVE = "tool-path-remove";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
