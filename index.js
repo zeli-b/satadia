@@ -160,12 +160,12 @@ function getPointPositions(points) {
   let point, previousPoint;
   const result = [];
 
-  point = getPointById(data.points, points[0]);
+  point = getPointById(points[0]);
   result.push(point);
   previousPoint = point;
 
   for (let i = 1; i < points.length; i++) {
-    point = getPointById(data.points, points[i]);
+    point = getPointById(points[i]);
 
     while (point.x - previousPoint.x > (data.maxx - data.minx) / 2) {
       point = movePointLeft(point);
@@ -213,18 +213,10 @@ function renderRegion(region, dx) {
     renderRegion(region, dx - (data.maxx - data.minx));
   }
 
-  if (convertPoint(max)[0] < 0) {
-    return;
-  }
-  if (convertPoint(max)[1] < 0) {
-    return;
-  }
-  if (convertPoint(min)[0] > canvas.width) {
-    return;
-  }
-  if (convertPoint(min)[1] > canvas.height) {
-    return;
-  }
+  if (convertPoint(max)[0] < 0) return;
+  if (convertPoint(max)[1] < 0) return;
+  if (convertPoint(min)[0] > canvas.width) return;
+  if (convertPoint(min)[1] > canvas.height) return;
 
   context.beginPath();
   context.moveTo(...convertPoint(positions[0]));
@@ -253,7 +245,7 @@ function renderPath(path, dx) {
 
   const { points } = path;
 
-  // -- draw polygon
+  // -- cylinderical render
   const positions = getPointPositions(points).map((position) => {
     return {
       x: position.x + dx,
@@ -262,6 +254,30 @@ function renderPath(path, dx) {
     };
   });
 
+  const { min, max } = getSpecialPoints(positions);
+  // to right
+  if (
+    dx >= 0 &&
+    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
+      canvas.width
+  ) {
+    renderPath(path, dx + (data.maxx - data.minx));
+  }
+  // to left
+  if (
+    dx <= 0 &&
+    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
+  ) {
+    renderPath(path, dx - (data.maxx - data.minx));
+  }
+
+  // -- get min max and check if renderable
+  if (convertPoint(max)[0] < 0) return;
+  if (convertPoint(min)[0] > canvas.width) return;
+  if (convertPoint(max)[1] < 0) return;
+  if (convertPoint(min)[1] > canvas.height) return;
+
+  // -- draw polygon
   context.strokeStyle = path.color;
   context.lineWidth = path.width;
   context.beginPath();
@@ -318,30 +334,12 @@ function renderPath(path, dx) {
       realPosition[1] + margin.top - margin.bottom,
     );
   }
-
-  // -- cylinderical render
-  const { min, max } = getSpecialPoints(positions);
-  // to right
-  if (
-    dx >= 0 &&
-    convertPoint({ x: min.x + (data.maxx - data.minx), y: min.y })[0] <=
-      canvas.width
-  ) {
-    renderPath(path, dx + (data.maxx - data.minx));
-  }
-  // to left
-  if (
-    dx <= 0 &&
-    convertPoint({ x: max.x - (data.maxx - data.minx), y: max.y })[0] > 0
-  ) {
-    renderPath(path, dx - (data.maxx - data.minx));
-  }
 }
 
 function renderPlace(place, dx) {
   if (dx === undefined) dx = 0;
 
-  let point = getPointById(data.points, place.point);
+  let point = getPointById(place.point);
   point = { x: point.x + dx, y: point.y };
   const realPosition = convertPoint(point);
 
@@ -376,9 +374,9 @@ function renderPlace(place, dx) {
   }
 }
 
-function getPointById(points, id) {
+function getPointById(id) {
   if (pointMap[id] === undefined) {
-    const point = points.find((point) => point.id == id);
+    const point = data.points.find((point) => point.id == id);
     pointMap[id] = point;
     return point;
   }
