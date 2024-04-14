@@ -31,11 +31,7 @@ function render() {
   data.regions.forEach((region) => renderRegion(region));
   data.paths.forEach((path) => renderPath(path));
   data.places.forEach((place) => renderPlace(place));
-  if (
-    tool === TOOL_POINT_MOVE ||
-    tool === TOOL_POINT_MAKE ||
-    tool === TOOL_POINT_DELETE
-  ) {
+  if (tool !== TOOL_HAND) {
     data.points.forEach((point) => renderPoint(point));
   }
 
@@ -457,14 +453,7 @@ function onmousedown(e) {
   }
 
   if (tool === TOOL_POINT_MOVE) {
-    const [x, y] = unconvertPoint(e.clientX, e.clientY);
-    pointSelected = undefined;
-    for (let i = 0; i < data.points.length; i++) {
-      const nowPoint = data.points[i];
-      if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
-        pointSelected = nowPoint;
-      }
-    }
+    pointSelected = clickPoint(e);
   }
 }
 
@@ -496,6 +485,40 @@ function isPointUsed(id) {
   return false;
 }
 
+function clickPoint(e) {
+  const [x, y] = unconvertPoint(e.clientX, e.clientY);
+  let point;
+  for (let i = 0; i < data.points.length; i++) {
+    const nowPoint = data.points[i];
+    if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+      point = nowPoint;
+    }
+  }
+
+  return point;
+}
+
+function newPlace(pointId, layer, name) {
+  let max = 0;
+  data.points.forEach((point) => {
+    max = Math.max(max, point.id);
+  });
+
+  return { id: max + 1, layer, point: pointId, name };
+}
+
+function getPlaceWithPointId(pointId) {
+  for (let i = 0; i < data.places.length; i++) {
+    const place = data.places[i];
+
+    if (place.point === pointId) {
+      return place;
+    }
+  }
+
+  return null;
+}
+
 function onmouseup(e) {
   if (e.which !== 1) {
     return;
@@ -511,17 +534,24 @@ function onmouseup(e) {
   }
 
   if (tool === TOOL_POINT_DELETE) {
-    const [x, y] = unconvertPoint(e.clientX, e.clientY);
-    let point;
-    for (let i = 0; i < data.points.length; i++) {
-      const nowPoint = data.points[i];
-      if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
-        point = nowPoint;
-      }
-    }
+    const point = clickPoint(e);
 
     if (point && !isPointUsed(point.id)) {
       data.points = data.points.filter((p) => p !== point);
+    }
+  }
+
+  if (tool === TOOL_PLACE_MAKE) {
+    const point = clickPoint(e);
+
+    if (point !== undefined) {
+      if (getPlaceWithPointId(point.id) === null) {
+        const name = prompt("거점의 이름");
+        const layer = prompt("거점 레이어");
+        const place = newPlace(point.id, parseInt(layer), name);
+        data.places.push(place);
+        render();
+      }
     }
   }
 }
@@ -572,6 +602,7 @@ const TOOL_HAND = "tool-hand";
 const TOOL_POINT_MAKE = "tool-point-make";
 const TOOL_POINT_MOVE = "tool-point-select";
 const TOOL_POINT_DELETE = "tool-point-delete";
+const TOOL_PLACE_MAKE = "tool-place-make";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
