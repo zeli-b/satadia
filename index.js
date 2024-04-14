@@ -632,8 +632,8 @@ function onwheel(e) {
 
   camera.zoom *= Math.exp(e.wheelDelta / 1000);
 
-  if (camera.zoom < 0.1) {
-    camera.zoom = 0.1;
+  if (camera.zoom < canvas.width / 2 / (data.maxx - data.minx)) {
+    camera.zoom = canvas.width / 2 / (data.maxx - data.minx);
   }
 
   render();
