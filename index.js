@@ -330,6 +330,7 @@ function renderPath(path, dx) {
     context.textAlign = align;
     context.textBaseline = baseline;
     context.font = "16pt Pretendard JP";
+    context.fillStyle = "black";
     context.fillText(
       path.name,
       realPosition[0] + margin.left - margin.right,
@@ -552,7 +553,7 @@ function onmousedown(e) {
     render();
   }
 
-  if (tool === TOOL_POINT_MOVE) {
+  if (tool === TOOL_POINT_MOVE || tool === TOOL_PATH_MAKE) {
     pointSelected = clickPoint(e);
   }
 
@@ -707,6 +708,41 @@ function onmouseup(e) {
       render();
     }
   }
+
+  if (tool === TOOL_PATH_MAKE) {
+    const point = clickPoint(e);
+    pointSelected;
+
+    data.paths.push(newPath([pointSelected.id, point.id]));
+
+    render();
+  }
+}
+
+function newPath(points) {
+  const name = prompt("이름");
+  const layer = parseInt(prompt("레이어"));
+  const color = prompt("색 (#000000)") || "#000000";
+  const width = parseInt(prompt("굵기 (2)")) || 2;
+
+  if (!name || !layer) {
+    return;
+  }
+
+  let id = 0;
+  for (let i = 0; i < data.paths.length; i++) {
+    const path = data.paths[i];
+    id = Math.max(path.id);
+  }
+
+  return {
+    id: id + 1,
+    layer,
+    points,
+    name,
+    color,
+    width,
+  };
 }
 
 function onmousemove(e) {
@@ -730,7 +766,7 @@ function onmousemove(e) {
     render();
   }
 
-  if (pointSelected !== undefined) {
+  if (tool === TOOL_POINT_MOVE && pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
@@ -758,6 +794,7 @@ const TOOL_POINT_MOVE = "tool-point-select";
 const TOOL_POINT_DELETE = "tool-point-delete";
 const TOOL_PLACE_MAKE = "tool-place-make";
 const TOOL_PLACE_DELETE = "tool-place-delete";
+const TOOL_PATH_MAKE = "tool-path-make";
 const TOOL_PATH_INSERT = "tool-path-insert";
 const TOOL_PATH_REMOVE = "tool-path-remove";
 const toolRadios = {};
