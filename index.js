@@ -512,7 +512,7 @@ function getPathSegment(e) {
   const [x, y] = unconvertPoint(e.clientX, e.clientY);
 
   let closestDistance;
-  let closest;
+  let closest = null;
   for (let i = 0; i < data.paths.length; i++) {
     const path = data.paths[i];
     for (let j = 0; j < path.points.length - 1; j++) {
@@ -521,7 +521,7 @@ function getPathSegment(e) {
 
       const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
 
-      if (closestDistance === undefined || distance < closestDistance) {
+      if (!closest || !closestDistance || distance < closestDistance) {
         closest = [i, j + 1];
         closestDistance = distance;
       }
@@ -717,6 +717,14 @@ function onmouseup(e) {
 
     render();
   }
+
+  if (tool === TOOL_PATH_DELETE) {
+    const pathId = getPathSegment(e)[0];
+
+    data.paths.splice(pathId, 1);
+
+    render();
+  }
 }
 
 function newPath(points) {
@@ -797,6 +805,7 @@ const TOOL_PLACE_DELETE = "tool-place-delete";
 const TOOL_PATH_MAKE = "tool-path-make";
 const TOOL_PATH_INSERT = "tool-path-insert";
 const TOOL_PATH_REMOVE = "tool-path-remove";
+const TOOL_PATH_DELETE = "tool-path-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
