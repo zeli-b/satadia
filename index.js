@@ -661,10 +661,6 @@ function onmouseup(e) {
     canvas.style.cursor = "grab";
   }
 
-  if (tool === TOOL_POINT_MOVE) {
-    pointSelected = undefined;
-  }
-
   if (tool === TOOL_POINT_DELETE) {
     const point = clickPoint(e);
 
@@ -732,7 +728,6 @@ function onmouseup(e) {
 
   if (tool === TOOL_PATH_MAKE) {
     const point = clickPoint(e);
-    pointSelected;
 
     data.paths.push(newPath([pointSelected.id, point.id]));
   }
@@ -743,6 +738,7 @@ function onmouseup(e) {
     data.paths.splice(pathId, 1);
   }
 
+  pointSelected = undefined;
   render();
 }
 
