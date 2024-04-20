@@ -640,15 +640,12 @@ function onmousemove(e) {
     if (camera.y > data.maxy) {
       camera.y = data.maxy;
     }
-
-    render();
   }
 
   if (pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
-    render();
   }
 
   if (mousePath.length > 0) {
@@ -657,6 +654,8 @@ function onmousemove(e) {
       e.clientY * window.devicePixelRatio,
     ]);
   }
+
+  render();
 }
 
 function onwheel(e) {
