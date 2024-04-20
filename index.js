@@ -620,7 +620,11 @@ function clickPoint(e) {
   let point;
   for (let i = 0; i < data.points.length; i++) {
     const nowPoint = data.points[i];
-    if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+    if (
+      point === undefined ||
+      Math.hypot(nowPoint.x - x, nowPoint.y - y) <
+        Math.hypot(point.x - x, point.y - y)
+    ) {
       point = nowPoint;
     }
   }
