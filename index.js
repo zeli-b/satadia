@@ -725,6 +725,10 @@ function onmouseup(e) {
           continue;
         }
 
+        if (path.points.length <= 2) {
+          continue;
+        }
+
         path.points = path.points.filter((p) => p !== point.id);
       }
     }
