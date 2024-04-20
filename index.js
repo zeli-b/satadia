@@ -38,7 +38,25 @@ function render() {
 
   // render pre-hud
   renderBorder();
+  renderMousePath();
   renderScale();
+}
+
+function renderMousePath() {
+  context.lineWidth = 1;
+  context.strokeStyle = "#0000ff40";
+
+  context.beginPath();
+  for (let i = 0; i < mousePath.length; i++) {
+    const [x, y] = mousePath[i];
+
+    if (i === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+  }
+  context.stroke();
 }
 
 function renderBorder() {
@@ -47,8 +65,8 @@ function renderBorder() {
   const width = endX - startX;
 
   context.lineWidth = 1;
+  context.strokeStyle = "black";
   context.beginPath();
-
   context.moveTo(0, startY);
   context.lineTo(canvas.width, startY);
   context.moveTo(0, endY);
@@ -87,6 +105,7 @@ function renderScale() {
     goodUnit /= 2;
   }
 
+  context.strokeStyle = "black";
   context.lineWidth = 5;
   context.beginPath();
   context.moveTo(canvas.width - 20 - rodLength, canvas.height - 20);
@@ -461,10 +480,16 @@ function newPoint(x, y) {
 let dragging = false;
 
 let pointSelected;
+let mousePath = [];
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
   }
+
+  mousePath.push([
+    e.clientX * window.devicePixelRatio,
+    e.clientY * window.devicePixelRatio,
+  ]);
 
   if (tool === TOOL_HAND) {
     dragging = true;
@@ -553,6 +578,8 @@ function onmouseup(e) {
     return;
   }
 
+  mousePath.length = 0;
+
   if (tool === TOOL_HAND) {
     dragging = false;
     canvas.style.cursor = "grab";
@@ -579,7 +606,6 @@ function onmouseup(e) {
         const layer = prompt("거점 레이어");
         const place = newPlace(point.id, parseInt(layer), name);
         data.places.push(place);
-        render();
       }
     }
   }
@@ -590,10 +616,11 @@ function onmouseup(e) {
       const thePlace = getPlaceWithPointId(point.id);
       if (thePlace) {
         data.places = data.places.filter((place) => place.id !== thePlace.id);
-        render();
       }
     }
   }
+
+  render();
 }
 
 function onmousemove(e) {
@@ -613,16 +640,22 @@ function onmousemove(e) {
     if (camera.y > data.maxy) {
       camera.y = data.maxy;
     }
-
-    render();
   }
 
   if (pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
-    render();
   }
+
+  if (mousePath.length > 0) {
+    mousePath.push([
+      e.clientX * window.devicePixelRatio,
+      e.clientY * window.devicePixelRatio,
+    ]);
+  }
+
+  render();
 }
 
 function onwheel(e) {
