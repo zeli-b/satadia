@@ -557,6 +557,7 @@ function getPathSegment(e) {
 let pointSelected;
 let mousePath = [];
 let pathInsertSelected;
+let regionMakePointIds = [];
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
@@ -588,6 +589,11 @@ function onmousedown(e) {
 
   if (tool === TOOL_PATH_INSERT) {
     pathInsertSelected = getPathSegment(e);
+  }
+
+  if (tool === TOOL_REGION_MAKE) {
+    const point = clickPoint(e);
+    regionMakePointIds.push(point.id);
   }
 }
 
@@ -750,8 +756,45 @@ function onmouseup(e) {
     data.paths.splice(pathId, 1);
   }
 
+  if (tool === TOOL_REGION_MAKE) {
+    if (
+      regionMakePointIds[regionMakePointIds.length - 1] ===
+      regionMakePointIds[0]
+    ) {
+      regionMakePointIds.splice(regionMakePointIds.length - 1, 1);
+    }
+
+    if (regionMakePointIds.length >= 3) {
+      data.regions.push(newRegion([...regionMakePointIds]));
+    }
+
+    regionMakePointIds.length = 0;
+  }
+
   pointSelected = undefined;
   render();
+}
+
+function newRegion(points) {
+  let id = 0;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    id = Math.max(id, region.id);
+  }
+
+  const name = prompt("이름");
+  const layer = parseInt(prompt("레이어"));
+  const color = prompt("색상");
+  const opacity = parseFloat(prompt("불투명도 (0–1)"));
+
+  return {
+    id,
+    layer,
+    points,
+    name,
+    color,
+    opacity,
+  };
 }
 
 function newPath(points) {
@@ -805,6 +848,17 @@ function onmousemove(e) {
     pointSelected.y = y;
   }
 
+  if (tool === TOOL_REGION_MAKE) {
+    if (regionMakePointIds.length > 0) {
+      const lastId = regionMakePointIds[regionMakePointIds.length - 1];
+      const point = clickPoint(e);
+
+      if (lastId !== point.id) {
+        regionMakePointIds.push(point.id);
+      }
+    }
+  }
+
   if (mousePath.length > 0) {
     mousePath.push([
       e.clientX * window.devicePixelRatio,
@@ -839,6 +893,7 @@ const TOOL_PATH_MAKE = "tool-path-make";
 const TOOL_PATH_INSERT = "tool-path-insert";
 const TOOL_PATH_REMOVE = "tool-path-remove";
 const TOOL_PATH_DELETE = "tool-path-delete";
+const TOOL_REGION_MAKE = "tool-region-make";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
