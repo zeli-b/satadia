@@ -845,6 +845,15 @@ function onmouseup(e) {
     }
   }
 
+  if (tool === TOOL_REGION_CONFIG) {
+    const region = clickRegion(e);
+
+    region.layer = prompt("레이어", region.layer);
+    region.name = prompt("이름", region.name);
+    region.color = prompt("색상", region.color);
+    region.opacity = prompt("불투명도", region.opacity);
+  }
+
   pointSelected = undefined;
   render();
 }
@@ -1018,6 +1027,7 @@ const TOOL_REGION_MAKE = "tool-region-make";
 const TOOL_REGION_INSERT = "tool-region-insert";
 const TOOL_REGION_REMOVE = "tool-region-remove";
 const TOOL_REGION_DELETE = "tool-region-delete";
+const TOOL_REGION_CONFIG = "tool-region-config";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
