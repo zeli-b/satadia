@@ -696,8 +696,6 @@ function onmouseup(e) {
     return;
   }
 
-  mousePath.length = 0;
-
   if (tool === TOOL_HAND) {
     dragging = false;
     canvas.style.cursor = "grab";
@@ -818,21 +816,20 @@ function onmouseup(e) {
   }
 
   if (tool === TOOL_REGION_REMOVE) {
-    const point = clickPoint(e);
+    for (let i = 0; i < data.regions.length; i++) {
+      const region = data.regions[i];
 
-    if (point) {
-      for (let i = 0; i < data.regions.length; i++) {
-        const region = data.regions[i];
+      for (let j = 0; j < region.points.length; j++) {
+        const point = getPointById(region.points[j]);
+        const convertedPoint = convertPoint(point);
 
-        if (region.points.indexOf(point.id) === -1) {
-          continue;
+        if (
+          polygonContainsPoint(mousePath, convertedPoint) &&
+          region.points.length > 3
+        ) {
+          region.points = region.points.filter((p) => p != point.id);
+          j--;
         }
-
-        if (region.points.length <= 3) {
-          continue;
-        }
-
-        region.points = region.points.filter((p) => p !== point.id);
       }
     }
   }
@@ -854,8 +851,35 @@ function onmouseup(e) {
     region.opacity = prompt("불투명도", region.opacity);
   }
 
+  mousePath.length = 0;
   pointSelected = undefined;
   render();
+}
+
+function polygonContainsPoint(points, point) {
+  const [cx, cy] = point;
+
+  let intersectionCount = 0;
+  for (let j = 0; j < points.length; j++) {
+    let p1 = points[j];
+    let p2 = points[(j + 1) % points.length];
+
+    if (p1[1] > p2[1]) {
+      [p1, p2] = [p2, p1];
+    }
+
+    if (!(p1[1] <= cy && cy < p2[1])) {
+      continue;
+    }
+
+    const intersectionX =
+      ((cy - p1[1]) / (p2[1] - p1[1])) * (p2[0] - p1[0]) + p1[0];
+    if (intersectionX > cx) {
+      intersectionCount++;
+    }
+  }
+
+  return intersectionCount % 2 == 1;
 }
 
 function clickRegion(e) {
@@ -867,27 +891,13 @@ function clickRegion(e) {
     const region = data.regions[i];
 
     // check if point in polygon
-    let intersectionCount = 0;
+    const convertedPoints = [];
     for (let j = 0; j < region.points.length; j++) {
-      let p1 = getPointById(region.points[j]);
-      let p2 = getPointById(region.points[(j + 1) % region.points.length]);
-
-      if (p1.y > p2.y) {
-        [p1, p2] = [p2, p1];
-      }
-
-      if (!(p1.y <= cy && cy < p2.y)) {
-        continue;
-      }
-
-      const intersectionX =
-        ((cy - p1.y) / (p2.y - p1.y)) * (p2.x - p1.x) + p1.x;
-      if (intersectionX > cx) {
-        intersectionCount++;
-      }
+      const point = getPointById(region.points[j]);
+      convertedPoints.push([point.x, point.y]);
     }
-
-    if (intersectionCount % 2 == 0) {
+    console.log(convertedPoints, cx, cy);
+    if (!polygonContainsPoint(convertedPoints, [cx, cy])) {
       continue;
     }
 
