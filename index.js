@@ -239,12 +239,16 @@ function renderRegion(region, dx) {
   if (convertPoint(min)[0] > canvas.width) return;
   if (convertPoint(min)[1] > canvas.height) return;
 
+  // fill
+  context.lineWidth = 1;
+  context.strokeStyle = "black";
   context.beginPath();
   context.moveTo(...convertPoint(positions[0]));
   for (let i = 1; i < points.length; i++) {
     context.lineTo(...convertPoint(positions[i]));
   }
   context.closePath();
+  context.stroke();
 
   // -- fill polygon
   context.fillStyle = region.color;
