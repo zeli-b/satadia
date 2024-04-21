@@ -870,6 +870,34 @@ function onmouseup(e) {
     region.opacity = prompt("불투명도", region.opacity);
   }
 
+  if (tool === TOOL_REGION_DUPLICATE) {
+    let nowPoints;
+    for (let i = 0; i < data.regions.length; i++) {
+      const region = data.regions[i];
+
+      const duplicatePoints = [];
+      for (let j = 0; j < region.points.length; j++) {
+        const point = getPointById(region.points[j]);
+        const convertedPoint = convertPoint(point);
+
+        if (polygonContainsPoint(mousePath, convertedPoint)) {
+          duplicatePoints.push(point.id);
+        }
+      }
+
+      if (
+        nowPoints === undefined ||
+        nowPoints.length < duplicatePoints.length
+      ) {
+        nowPoints = duplicatePoints;
+      }
+    }
+
+    if (nowPoints && nowPoints.length >= 3) {
+      data.regions.push(newRegion(nowPoints));
+    }
+  }
+
   mousePath.length = 0;
   pointSelected = undefined;
   render();
@@ -1071,6 +1099,7 @@ const TOOL_REGION_INSERT = "tool-region-insert";
 const TOOL_REGION_REMOVE = "tool-region-remove";
 const TOOL_REGION_DELETE = "tool-region-delete";
 const TOOL_REGION_CONFIG = "tool-region-config";
+const TOOL_REGION_DUPLICATE = "tool-region-duplicate";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
