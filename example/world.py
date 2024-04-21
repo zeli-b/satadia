@@ -32,8 +32,8 @@ def main():
         parsed = parse_path(d)
 
         for obj in parsed:
-            point1 = (round(obj.start.real, 2), round(obj.start.imag, 2))
-            point2 = (round(obj.end.real, 2), round(obj.end.imag, 2))
+            point1 = (round(obj.start.real), round(obj.start.imag))
+            point2 = (round(obj.end.real), round(obj.end.imag))
 
             point1_id = get_point_id(point1)
             point2_id = get_point_id(point2)
@@ -89,7 +89,7 @@ def main():
             "points": regions[i],
             "name": "",
             "color": "#fff",
-            "opacity": 0.5,
+            "opacity": 1.0,
         }
 
     print(len(regions))
