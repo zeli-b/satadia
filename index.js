@@ -431,22 +431,26 @@ function convertPoint(point) {
   return [x, y];
 }
 
-function unconvertPoint(x, y) {
+function unconvertPoint(x, y, notInMap) {
   const dpr = window.devicePixelRatio;
 
   let cx = ((x - canvas.width / dpr / 2) / camera.zoom) * dpr + camera.x;
-  while (cx > data.maxx) {
-    cx -= data.maxx - data.minx;
-  }
-  while (cx < data.minx) {
-    cx += data.maxx - data.minx;
+  if (!notInMap) {
+    while (cx > data.maxx) {
+      cx -= data.maxx - data.minx;
+    }
+    while (cx < data.minx) {
+      cx += data.maxx - data.minx;
+    }
   }
 
   let cy = ((y - canvas.height / dpr / 2) / camera.zoom) * dpr + camera.y;
-  if (cy < data.miny) {
-    cy = data.miny;
-  } else if (cy > data.maxy) {
-    cy = data.maxy;
+  if (!notInMap) {
+    if (cy < data.miny) {
+      cy = data.miny;
+    } else if (cy > data.maxy) {
+      cy = data.maxy;
+    }
   }
 
   return [cx, cy];
@@ -1029,11 +1033,25 @@ function onwheel(e) {
     e.preventDefault();
   }
 
-  camera.zoom *= Math.exp(e.wheelDelta / 1000);
+  let multiplier = Math.exp(e.wheelDelta / 2000);
 
-  if (camera.zoom < canvas.width / 2 / (data.maxx - data.minx)) {
-    camera.zoom = canvas.width / 2 / (data.maxx - data.minx);
+  if (camera.zoom * multiplier < canvas.width / 2 / (data.maxx - data.minx)) {
+    multiplier = canvas.width / 2 / (data.maxx - data.minx) / camera.zoom;
   }
+
+  const [cx, cy] = unconvertPoint(e.clientX, e.clientY, true);
+  camera.x += (cx - camera.x) * Math.log(multiplier);
+  camera.y += (cy - camera.y) * Math.log(multiplier);
+  console.log(multiplier);
+
+  if (camera.y < data.miny) {
+    camera.y = data.miny;
+  }
+  if (camera.y > data.maxy) {
+    camera.y = data.maxy;
+  }
+
+  camera.zoom *= multiplier;
 
   render();
 }
