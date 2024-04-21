@@ -817,6 +817,26 @@ function onmouseup(e) {
     }
   }
 
+  if (tool === TOOL_REGION_REMOVE) {
+    const point = clickPoint(e);
+
+    if (point) {
+      for (let i = 0; i < data.regions.length; i++) {
+        const region = data.regions[i];
+
+        if (region.points.indexOf(point.id) === -1) {
+          continue;
+        }
+
+        if (region.points.length <= 3) {
+          continue;
+        }
+
+        region.points = region.points.filter((p) => p !== point.id);
+      }
+    }
+  }
+
   if (tool === TOOL_REGION_DELETE) {
     const region = clickRegion(e);
 
@@ -996,6 +1016,7 @@ const TOOL_PATH_REMOVE = "tool-path-remove";
 const TOOL_PATH_DELETE = "tool-path-delete";
 const TOOL_REGION_MAKE = "tool-region-make";
 const TOOL_REGION_INSERT = "tool-region-insert";
+const TOOL_REGION_REMOVE = "tool-region-remove";
 const TOOL_REGION_DELETE = "tool-region-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
