@@ -817,8 +817,63 @@ function onmouseup(e) {
     }
   }
 
+  if (tool === TOOL_REGION_DELETE) {
+    const region = clickRegion(e);
+
+    if (region) {
+      data.regions = data.regions.filter((r) => region.id !== r.id);
+    }
+  }
+
   pointSelected = undefined;
   render();
+}
+
+function clickRegion(e) {
+  const [cx, cy] = unconvertPoint(e.clientX, e.clientY);
+
+  let selectedRegion;
+  let selectedRegionSize = Infinity;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+
+    // check if point in polygon
+    let intersectionCount = 0;
+    for (let j = 0; j < region.points.length - 1; j++) {
+      let p1 = getPointById(region.points[j]);
+      let p2 = getPointById(region.points[j + 1]);
+
+      if (p1.y > p2.y) {
+        [p1, p2] = [p2, p1];
+      }
+
+      if (!(p1.y <= cy && cy < p2.y)) {
+        continue;
+      }
+
+      const intersectionX =
+        ((cy - p1.y) / (p2.y - p1.y)) * (p2.x - p1.x) + p1.x;
+      if (intersectionX > cx) {
+        intersectionCount++;
+      }
+    }
+
+    if (intersectionCount % 2 == 0) {
+      continue;
+    }
+
+    // select smaller region
+    if (region.points.length < selectedRegionSize) {
+      selectedRegionSize = region.points.length;
+      selectedRegion = region;
+    }
+  }
+
+  if (selectedRegion === undefined) {
+    return;
+  }
+
+  return selectedRegion;
 }
 
 function newRegion(points) {
@@ -941,6 +996,7 @@ const TOOL_PATH_REMOVE = "tool-path-remove";
 const TOOL_PATH_DELETE = "tool-path-delete";
 const TOOL_REGION_MAKE = "tool-region-make";
 const TOOL_REGION_INSERT = "tool-region-insert";
+const TOOL_REGION_DELETE = "tool-region-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
