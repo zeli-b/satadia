@@ -943,7 +943,6 @@ function clickRegion(e) {
       const point = getPointById(region.points[j]);
       convertedPoints.push([point.x, point.y]);
     }
-    console.log(convertedPoints, cx, cy);
     if (!polygonContainsPoint(convertedPoints, [cx, cy])) {
       continue;
     }
@@ -1070,7 +1069,6 @@ function onwheel(e) {
   const [cx, cy] = unconvertPoint(e.clientX, e.clientY, true);
   camera.x += (cx - camera.x) * Math.log(multiplier);
   camera.y += (cy - camera.y) * Math.log(multiplier);
-  console.log(multiplier);
 
   if (camera.y < data.miny) {
     camera.y = data.miny;
