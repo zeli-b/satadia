@@ -13,6 +13,12 @@ let camera = {
   zoom: 1000 / ((data.maxx - data.minx + data.maxy - data.miny) / 4),
 };
 
+const texts = [];
+function renderText() {
+  texts.forEach((text) => text());
+  texts.length = 0;
+}
+
 function render() {
   if (tool === TOOL_HAND && canvas.style.cursor === "") {
     canvas.style.cursor = "grab";
@@ -38,6 +44,7 @@ function render() {
 
   // render pre-hud
   renderBorder();
+  renderText();
   renderMousePath();
   renderScale();
 }
@@ -112,15 +119,17 @@ function renderScale() {
   context.lineTo(canvas.width - 20, canvas.height - 20);
   context.stroke();
 
-  context.fillStyle = "black";
-  context.font = "16pt Pretendard JP";
-  context.textAlign = "right";
-  context.textBaseline = "middle";
-  context.fillText(
-    stringifyLength(goodUnit),
-    canvas.width - 20,
-    canvas.height - 40,
-  );
+  texts.push(() => {
+    context.fillStyle = "black";
+    context.font = "16pt Pretendard JP";
+    context.textAlign = "right";
+    context.textBaseline = "middle";
+    context.fillText(
+      stringifyLength(goodUnit),
+      canvas.width - 20,
+      canvas.height - 40,
+    );
+  });
 }
 
 function renderPoint(point, dx) {
@@ -258,11 +267,13 @@ function renderRegion(region, dx) {
 
   // -- fill text
   const realCenter = convertPoint(center);
-  context.font = "32pt Pretendard JP";
-  context.fillStyle = "black";
-  context.textBaseline = "middle";
-  context.textAlign = "center";
-  context.fillText(region.name, realCenter[0], realCenter[1]);
+  texts.push(() => {
+    context.font = "32pt Pretendard JP";
+    context.fillStyle = "black";
+    context.textBaseline = "middle";
+    context.textAlign = "center";
+    context.fillText(region.name, realCenter[0], realCenter[1]);
+  });
 }
 
 function renderPath(path, dx) {
@@ -350,15 +361,17 @@ function renderPath(path, dx) {
     }
 
     const realPosition = convertPoint(positions[i]);
-    context.textAlign = align;
-    context.textBaseline = baseline;
-    context.font = "16pt Pretendard JP";
-    context.fillStyle = "black";
-    context.fillText(
-      path.name,
-      realPosition[0] + margin.left - margin.right,
-      realPosition[1] + margin.top - margin.bottom,
-    );
+    texts.push(() => {
+      context.textAlign = align;
+      context.textBaseline = baseline;
+      context.font = "16pt Pretendard JP";
+      context.fillStyle = "black";
+      context.fillText(
+        path.name,
+        realPosition[0] + margin.left - margin.right,
+        realPosition[1] + margin.top - margin.bottom,
+      );
+    });
   }
 }
 
@@ -377,11 +390,13 @@ function renderPlace(place, dx) {
   context.fill();
   context.stroke();
 
-  context.font = "16pt Pretendard JP";
-  context.textAlign = "left";
-  context.textBaseline = "middle";
-  context.fillStyle = "black";
-  context.fillText(place.name, realPosition[0] + 16, realPosition[1]);
+  texts.push(() => {
+    context.font = "16pt Pretendard JP";
+    context.textAlign = "left";
+    context.textBaseline = "middle";
+    context.fillStyle = "black";
+    context.fillText(place.name, realPosition[0] + 16, realPosition[1]);
+  });
 
   // -- cylinderical render
   // to right
