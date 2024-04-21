@@ -538,9 +538,9 @@ function getPathSegment(e) {
   let closest = null;
   for (let i = 0; i < data.paths.length; i++) {
     const path = data.paths[i];
-    for (let j = 0; j < path.points.length - 1; j++) {
+    for (let j = 0; j < path.points.length; j++) {
       const p1 = getPointById(path.points[j]);
-      const p2 = getPointById(path.points[j + 1]);
+      const p2 = getPointById(path.points[(j + 1) % path.points.length]);
 
       const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
 
@@ -561,9 +561,9 @@ function getRegionSegment(e) {
   let closest = null;
   for (let i = 0; i < data.regions.length; i++) {
     const region = data.regions[i];
-    for (let j = 0; j < region.points.length - 1; j++) {
+    for (let j = 0; j < region.points.length; j++) {
       const p1 = getPointById(region.points[j]);
-      const p2 = getPointById(region.points[j + 1]);
+      const p2 = getPointById(region.points[(j + 1) % region.points.length]);
 
       const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
 
@@ -859,9 +859,9 @@ function clickRegion(e) {
 
     // check if point in polygon
     let intersectionCount = 0;
-    for (let j = 0; j < region.points.length - 1; j++) {
+    for (let j = 0; j < region.points.length; j++) {
       let p1 = getPointById(region.points[j]);
-      let p2 = getPointById(region.points[j + 1]);
+      let p2 = getPointById(region.points[(j + 1) % region.points.length]);
 
       if (p1.y > p2.y) {
         [p1, p2] = [p2, p1];
