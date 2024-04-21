@@ -349,6 +349,7 @@ function renderPath(path, dx) {
     context.textAlign = align;
     context.textBaseline = baseline;
     context.font = "16pt Pretendard JP";
+    context.fillStyle = "black";
     context.fillText(
       path.name,
       realPosition[0] + margin.left - margin.right,
@@ -479,8 +480,79 @@ function newPoint(x, y) {
 
 let dragging = false;
 
+function getDistanceSegmentPoint(x, y, x1, y1, x2, y2) {
+  /*
+  if (x2 - x1 === 0) {
+    return getDistanceSegmentPoint(y, x, y1, x1, y2, x2);
+  }
+
+  const t = (y2 - y1) / (x2 - x1);
+  const a = t;
+  const b = -1;
+  const c = -t * x1 + y1;
+
+  return Math.abs(a * x + b * y + c) / Math.hypot(a, b);
+  */
+  // Function to calculate distance between a point (x, y) and a line segment defined by (x1, y1) and (x2, y2)
+
+  // Calculate the length of the segment
+  const segmentLengthSquared = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+
+  // If the segment is just a point, return distance to that point
+  if (segmentLengthSquared === 0) {
+    return Math.sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
+  }
+
+  // Calculate the parameter t where the point projection lies on the line extending the segment
+  let t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / segmentLengthSquared;
+
+  // If t is less than 0, the projection of the point is before the segment
+  if (t < 0) {
+    return Math.sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
+  }
+
+  // If t is greater than 1, the projection of the point is after the segment
+  if (t > 1) {
+    return Math.sqrt((x - x2) * (x - x2) + (y - y2) * (y - y2));
+  }
+
+  // Calculate the coordinates of the projection
+  const projectionX = x1 + t * (x2 - x1);
+  const projectionY = y1 + t * (y2 - y1);
+
+  // Calculate the distance between the point and the projection
+  return Math.sqrt(
+    (x - projectionX) * (x - projectionX) +
+      (y - projectionY) * (y - projectionY),
+  );
+}
+
+function getPathSegment(e) {
+  const [x, y] = unconvertPoint(e.clientX, e.clientY);
+
+  let closestDistance;
+  let closest = null;
+  for (let i = 0; i < data.paths.length; i++) {
+    const path = data.paths[i];
+    for (let j = 0; j < path.points.length - 1; j++) {
+      const p1 = getPointById(path.points[j]);
+      const p2 = getPointById(path.points[j + 1]);
+
+      const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
+
+      if (!closest || !closestDistance || distance < closestDistance) {
+        closest = [i, j + 1];
+        closestDistance = distance;
+      }
+    }
+  }
+
+  return closest;
+}
+
 let pointSelected;
 let mousePath = [];
+let pathInsertSelected;
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
@@ -506,8 +578,12 @@ function onmousedown(e) {
     render();
   }
 
-  if (tool === TOOL_POINT_MOVE) {
+  if (tool === TOOL_POINT_MOVE || tool === TOOL_PATH_MAKE) {
     pointSelected = clickPoint(e);
+  }
+
+  if (tool === TOOL_PATH_INSERT) {
+    pathInsertSelected = getPathSegment(e);
   }
 }
 
@@ -544,7 +620,11 @@ function clickPoint(e) {
   let point;
   for (let i = 0; i < data.points.length; i++) {
     const nowPoint = data.points[i];
-    if (Math.hypot(nowPoint.x - x, nowPoint.y - y) < 20 / camera.zoom) {
+    if (
+      point === undefined ||
+      Math.hypot(nowPoint.x - x, nowPoint.y - y) <
+        Math.hypot(point.x - x, point.y - y)
+    ) {
       point = nowPoint;
     }
   }
@@ -585,10 +665,6 @@ function onmouseup(e) {
     canvas.style.cursor = "grab";
   }
 
-  if (tool === TOOL_POINT_MOVE) {
-    pointSelected = undefined;
-  }
-
   if (tool === TOOL_POINT_DELETE) {
     const point = clickPoint(e);
 
@@ -620,7 +696,84 @@ function onmouseup(e) {
     }
   }
 
+  if (tool === TOOL_PATH_INSERT) {
+    const point = clickPoint(e);
+
+    if (pathInsertSelected && point) {
+      const remainder = data.paths[pathInsertSelected[0]].points.splice(
+        pathInsertSelected[1],
+      );
+
+      data.paths[pathInsertSelected[0]].points = [
+        ...data.paths[pathInsertSelected[0]].points,
+        point.id,
+        ...remainder,
+      ];
+
+      pathInsertSelected = undefined;
+    }
+  }
+
+  if (tool === TOOL_PATH_REMOVE) {
+    const point = clickPoint(e);
+
+    if (point) {
+      for (let i = 0; i < data.paths.length; i++) {
+        const path = data.paths[i];
+
+        if (path.points.indexOf(point.id) === -1) {
+          continue;
+        }
+
+        if (path.points.length <= 2) {
+          continue;
+        }
+
+        path.points = path.points.filter((p) => p !== point.id);
+      }
+    }
+  }
+
+  if (tool === TOOL_PATH_MAKE) {
+    const point = clickPoint(e);
+
+    data.paths.push(newPath([pointSelected.id, point.id]));
+  }
+
+  if (tool === TOOL_PATH_DELETE) {
+    const pathId = getPathSegment(e)[0];
+
+    data.paths.splice(pathId, 1);
+  }
+
+  pointSelected = undefined;
   render();
+}
+
+function newPath(points) {
+  const name = prompt("이름");
+  const layer = parseInt(prompt("레이어"));
+  const color = prompt("색 (#000000)") || "#000000";
+  const width = parseInt(prompt("굵기 (2)")) || 2;
+
+  if (!name || !layer) {
+    return;
+  }
+
+  let id = 0;
+  for (let i = 0; i < data.paths.length; i++) {
+    const path = data.paths[i];
+    id = Math.max(path.id);
+  }
+
+  return {
+    id: id + 1,
+    layer,
+    points,
+    name,
+    color,
+    width,
+  };
 }
 
 function onmousemove(e) {
@@ -642,7 +795,7 @@ function onmousemove(e) {
     }
   }
 
-  if (pointSelected !== undefined) {
+  if (tool === TOOL_POINT_MOVE && pointSelected !== undefined) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     pointSelected.x = x;
     pointSelected.y = y;
@@ -678,6 +831,10 @@ const TOOL_POINT_MOVE = "tool-point-select";
 const TOOL_POINT_DELETE = "tool-point-delete";
 const TOOL_PLACE_MAKE = "tool-place-make";
 const TOOL_PLACE_DELETE = "tool-place-delete";
+const TOOL_PATH_MAKE = "tool-path-make";
+const TOOL_PATH_INSERT = "tool-path-insert";
+const TOOL_PATH_REMOVE = "tool-path-remove";
+const TOOL_PATH_DELETE = "tool-path-delete";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
