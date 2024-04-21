@@ -554,10 +554,34 @@ function getPathSegment(e) {
   return closest;
 }
 
+function getRegionSegment(e) {
+  const [x, y] = unconvertPoint(e.clientX, e.clientY);
+
+  let closestDistance;
+  let closest = null;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    for (let j = 0; j < region.points.length - 1; j++) {
+      const p1 = getPointById(region.points[j]);
+      const p2 = getPointById(region.points[j + 1]);
+
+      const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
+
+      if (!closest || !closestDistance || distance < closestDistance) {
+        closest = [i, j + 1];
+        closestDistance = distance;
+      }
+    }
+  }
+
+  return closest;
+}
+
 let pointSelected;
 let mousePath = [];
 let pathInsertSelected;
 let regionMakePointIds = [];
+let regionInsertSelected;
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
@@ -594,6 +618,10 @@ function onmousedown(e) {
   if (tool === TOOL_REGION_MAKE) {
     const point = clickPoint(e);
     regionMakePointIds.push(point.id);
+  }
+
+  if (tool === TOOL_REGION_INSERT) {
+    regionInsertSelected = getRegionSegment(e);
   }
 }
 
@@ -771,6 +799,24 @@ function onmouseup(e) {
     regionMakePointIds.length = 0;
   }
 
+  if (tool === TOOL_REGION_INSERT) {
+    const point = clickPoint(e);
+
+    if (regionInsertSelected && point) {
+      const remainder = data.regions[regionInsertSelected[0]].points.splice(
+        regionInsertSelected[1],
+      );
+
+      data.regions[regionInsertSelected[0]].points = [
+        ...data.regions[regionInsertSelected[0]].points,
+        point.id,
+        ...remainder,
+      ];
+
+      regionInsertSelected = undefined;
+    }
+  }
+
   pointSelected = undefined;
   render();
 }
@@ -894,6 +940,7 @@ const TOOL_PATH_INSERT = "tool-path-insert";
 const TOOL_PATH_REMOVE = "tool-path-remove";
 const TOOL_PATH_DELETE = "tool-path-delete";
 const TOOL_REGION_MAKE = "tool-region-make";
+const TOOL_REGION_INSERT = "tool-region-insert";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
