@@ -239,12 +239,16 @@ function renderRegion(region, dx) {
   if (convertPoint(min)[0] > canvas.width) return;
   if (convertPoint(min)[1] > canvas.height) return;
 
+  // fill
+  context.lineWidth = 1;
+  context.strokeStyle = "black";
   context.beginPath();
   context.moveTo(...convertPoint(positions[0]));
   for (let i = 1; i < points.length; i++) {
     context.lineTo(...convertPoint(positions[i]));
   }
   context.closePath();
+  context.stroke();
 
   // -- fill polygon
   context.fillStyle = region.color;
@@ -534,9 +538,32 @@ function getPathSegment(e) {
   let closest = null;
   for (let i = 0; i < data.paths.length; i++) {
     const path = data.paths[i];
-    for (let j = 0; j < path.points.length - 1; j++) {
+    for (let j = 0; j < path.points.length; j++) {
       const p1 = getPointById(path.points[j]);
-      const p2 = getPointById(path.points[j + 1]);
+      const p2 = getPointById(path.points[(j + 1) % path.points.length]);
+
+      const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
+
+      if (!closest || !closestDistance || distance < closestDistance) {
+        closest = [i, j + 1];
+        closestDistance = distance;
+      }
+    }
+  }
+
+  return closest;
+}
+
+function getRegionSegment(e) {
+  const [x, y] = unconvertPoint(e.clientX, e.clientY);
+
+  let closestDistance;
+  let closest = null;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    for (let j = 0; j < region.points.length; j++) {
+      const p1 = getPointById(region.points[j]);
+      const p2 = getPointById(region.points[(j + 1) % region.points.length]);
 
       const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
 
@@ -553,6 +580,8 @@ function getPathSegment(e) {
 let pointSelected;
 let mousePath = [];
 let pathInsertSelected;
+let regionMakePointIds = [];
+let regionInsertSelected;
 function onmousedown(e) {
   if (e.which !== 1) {
     return;
@@ -584,6 +613,15 @@ function onmousedown(e) {
 
   if (tool === TOOL_PATH_INSERT) {
     pathInsertSelected = getPathSegment(e);
+  }
+
+  if (tool === TOOL_REGION_MAKE) {
+    const point = clickPoint(e);
+    regionMakePointIds.push(point.id);
+  }
+
+  if (tool === TOOL_REGION_INSERT) {
+    regionInsertSelected = getRegionSegment(e);
   }
 }
 
@@ -746,8 +784,147 @@ function onmouseup(e) {
     data.paths.splice(pathId, 1);
   }
 
+  if (tool === TOOL_REGION_MAKE) {
+    if (
+      regionMakePointIds[regionMakePointIds.length - 1] ===
+      regionMakePointIds[0]
+    ) {
+      regionMakePointIds.splice(regionMakePointIds.length - 1, 1);
+    }
+
+    if (regionMakePointIds.length >= 3) {
+      data.regions.push(newRegion([...regionMakePointIds]));
+    }
+
+    regionMakePointIds.length = 0;
+  }
+
+  if (tool === TOOL_REGION_INSERT) {
+    const point = clickPoint(e);
+
+    if (regionInsertSelected && point) {
+      const remainder = data.regions[regionInsertSelected[0]].points.splice(
+        regionInsertSelected[1],
+      );
+
+      data.regions[regionInsertSelected[0]].points = [
+        ...data.regions[regionInsertSelected[0]].points,
+        point.id,
+        ...remainder,
+      ];
+
+      regionInsertSelected = undefined;
+    }
+  }
+
+  if (tool === TOOL_REGION_REMOVE) {
+    const point = clickPoint(e);
+
+    if (point) {
+      for (let i = 0; i < data.regions.length; i++) {
+        const region = data.regions[i];
+
+        if (region.points.indexOf(point.id) === -1) {
+          continue;
+        }
+
+        if (region.points.length <= 3) {
+          continue;
+        }
+
+        region.points = region.points.filter((p) => p !== point.id);
+      }
+    }
+  }
+
+  if (tool === TOOL_REGION_DELETE) {
+    const region = clickRegion(e);
+
+    if (region) {
+      data.regions = data.regions.filter((r) => region.id !== r.id);
+    }
+  }
+
+  if (tool === TOOL_REGION_CONFIG) {
+    const region = clickRegion(e);
+
+    region.layer = prompt("레이어", region.layer);
+    region.name = prompt("이름", region.name);
+    region.color = prompt("색상", region.color);
+    region.opacity = prompt("불투명도", region.opacity);
+  }
+
   pointSelected = undefined;
   render();
+}
+
+function clickRegion(e) {
+  const [cx, cy] = unconvertPoint(e.clientX, e.clientY);
+
+  let selectedRegion;
+  let selectedRegionSize = Infinity;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+
+    // check if point in polygon
+    let intersectionCount = 0;
+    for (let j = 0; j < region.points.length; j++) {
+      let p1 = getPointById(region.points[j]);
+      let p2 = getPointById(region.points[(j + 1) % region.points.length]);
+
+      if (p1.y > p2.y) {
+        [p1, p2] = [p2, p1];
+      }
+
+      if (!(p1.y <= cy && cy < p2.y)) {
+        continue;
+      }
+
+      const intersectionX =
+        ((cy - p1.y) / (p2.y - p1.y)) * (p2.x - p1.x) + p1.x;
+      if (intersectionX > cx) {
+        intersectionCount++;
+      }
+    }
+
+    if (intersectionCount % 2 == 0) {
+      continue;
+    }
+
+    // select smaller region
+    if (region.points.length < selectedRegionSize) {
+      selectedRegionSize = region.points.length;
+      selectedRegion = region;
+    }
+  }
+
+  if (selectedRegion === undefined) {
+    return;
+  }
+
+  return selectedRegion;
+}
+
+function newRegion(points) {
+  let id = 0;
+  for (let i = 0; i < data.regions.length; i++) {
+    const region = data.regions[i];
+    id = Math.max(id, region.id);
+  }
+
+  const name = prompt("이름");
+  const layer = parseInt(prompt("레이어"));
+  const color = prompt("색상");
+  const opacity = parseFloat(prompt("불투명도 (0–1)"));
+
+  return {
+    id,
+    layer,
+    points,
+    name,
+    color,
+    opacity,
+  };
 }
 
 function newPath(points) {
@@ -801,6 +978,17 @@ function onmousemove(e) {
     pointSelected.y = y;
   }
 
+  if (tool === TOOL_REGION_MAKE) {
+    if (regionMakePointIds.length > 0) {
+      const lastId = regionMakePointIds[regionMakePointIds.length - 1];
+      const point = clickPoint(e);
+
+      if (lastId !== point.id) {
+        regionMakePointIds.push(point.id);
+      }
+    }
+  }
+
   if (mousePath.length > 0) {
     mousePath.push([
       e.clientX * window.devicePixelRatio,
@@ -835,6 +1023,11 @@ const TOOL_PATH_MAKE = "tool-path-make";
 const TOOL_PATH_INSERT = "tool-path-insert";
 const TOOL_PATH_REMOVE = "tool-path-remove";
 const TOOL_PATH_DELETE = "tool-path-delete";
+const TOOL_REGION_MAKE = "tool-region-make";
+const TOOL_REGION_INSERT = "tool-region-insert";
+const TOOL_REGION_REMOVE = "tool-region-remove";
+const TOOL_REGION_DELETE = "tool-region-delete";
+const TOOL_REGION_CONFIG = "tool-region-config";
 const toolRadios = {};
 let tool = TOOL_HAND;
 
