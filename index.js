@@ -622,7 +622,10 @@ function onmousedown(e) {
   if (tool === TOOL_POINT_MAKE) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     const point = newPoint(x, y);
+
+    updateUndoStack(UPDATE_POINT);
     data.points.push(point);
+
     render();
   }
 
@@ -724,6 +727,7 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (point && !isPointUsed(point.id)) {
+      updateUndoStack(UPDATE_POINT);
       data.points = data.points.filter((p) => p !== point);
     }
   }
@@ -736,6 +740,8 @@ function onmouseup(e) {
         const name = prompt("거점의 이름");
         const layer = prompt("거점 레이어");
         const place = newPlace(point.id, parseInt(layer), name);
+
+        updateUndoStack(UPDATE_PLACE);
         data.places.push(place);
       }
     }
@@ -746,6 +752,7 @@ function onmouseup(e) {
     if (point) {
       const thePlace = getPlaceWithPointId(point.id);
       if (thePlace) {
+        updateUndoStack(UPDATE_PLACE);
         data.places = data.places.filter((place) => place.id !== thePlace.id);
       }
     }
@@ -759,6 +766,7 @@ function onmouseup(e) {
         pathInsertSelected[1],
       );
 
+      updateUndoStack(UPDATE_PATH);
       data.paths[pathInsertSelected[0]].points = [
         ...data.paths[pathInsertSelected[0]].points,
         point.id,
@@ -773,6 +781,8 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (point) {
+      updateUndoStack(UPDATE_PATH);
+      let changed = false;
       for (let i = 0; i < data.paths.length; i++) {
         const path = data.paths[i];
 
@@ -784,7 +794,12 @@ function onmouseup(e) {
           continue;
         }
 
+        changed = true;
         path.points = path.points.filter((p) => p !== point.id);
+      }
+
+      if (!changed) {
+        undoStack.pop();
       }
     }
   }
@@ -792,12 +807,14 @@ function onmouseup(e) {
   if (tool === TOOL_PATH_MAKE) {
     const point = clickPoint(e);
 
+    updateUndoStack(UPDATE_PATH);
     data.paths.push(newPath([pointSelected.id, point.id]));
   }
 
   if (tool === TOOL_PATH_DELETE) {
     const pathId = getPathSegment(e)[0];
 
+    updateUndoStack(UPDATE_PATH);
     data.paths.splice(pathId, 1);
   }
 
@@ -810,6 +827,7 @@ function onmouseup(e) {
     }
 
     if (regionMakePointIds.length >= 3) {
+      updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion([...regionMakePointIds]));
     }
 
@@ -820,6 +838,8 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (regionInsertSelected && point) {
+      updateUndoStack(UPDATE_REGION);
+
       const remainder = data.regions[regionInsertSelected[0]].points.splice(
         regionInsertSelected[1],
       );
@@ -838,6 +858,8 @@ function onmouseup(e) {
     for (let i = 0; i < data.regions.length; i++) {
       const region = data.regions[i];
 
+      updateUndoStack(UPDATE_REGION);
+      let changed = false;
       for (let j = 0; j < region.points.length; j++) {
         const point = getPointById(region.points[j]);
         const convertedPoint = convertPoint(point);
@@ -846,9 +868,14 @@ function onmouseup(e) {
           polygonContainsPoint(mousePath, convertedPoint) &&
           region.points.length > 3
         ) {
+          changed = true;
           region.points = region.points.filter((p) => p != point.id);
           j--;
         }
+      }
+
+      if (!changed) {
+        undoStack.pop();
       }
     }
   }
@@ -857,13 +884,15 @@ function onmouseup(e) {
     const region = clickRegion(e);
 
     if (region) {
+      updateUndoStack(UPDATE_REGION);
       data.regions = data.regions.filter((r) => region.id !== r.id);
     }
   }
 
   if (tool === TOOL_REGION_CONFIG) {
-    const region = clickRegion(e);
+    updateUndoStack(UPDATE_REGION);
 
+    const region = clickRegion(e);
     region.layer = prompt("레이어", region.layer);
     region.name = prompt("이름", region.name);
     region.color = prompt("색상", region.color);
@@ -894,6 +923,7 @@ function onmouseup(e) {
     }
 
     if (nowPoints && nowPoints.length >= 3) {
+      updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion(nowPoints));
     }
   }
@@ -1145,6 +1175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
       pointMap = {};
+      undoStack.length = 0;
       camera.x = (data.maxx + data.minx) / 2;
       camera.y = (data.maxy + data.miny) / 2;
       camera.zoom =
@@ -1203,4 +1234,51 @@ function emptyProject() {
   camera.zoom = 1000 / ((data.maxx - data.minx + data.maxy - data.miny) / 4);
 
   render();
+}
+
+let undoStack = [];
+function undo() {
+  if (undoStack.length <= 0) {
+    return;
+  }
+
+  let [updateData, updateThing] = undoStack.pop();
+  updateData = JSON.parse(updateData);
+
+  if (updateThing === UPDATE_POINT) {
+    data.points = updateData;
+  } else if (updateThing === UPDATE_REGION) {
+    data.regions = updateData;
+  } else if (updateThing === UPDATE_PATH) {
+    data.paths = updateData;
+  } else if (updateThing === UPDATE_PLACE) {
+    data.places = updateData;
+  } else {
+    data = updateData;
+  }
+
+  render();
+}
+
+const UPDATE_POINT = "point";
+const UPDATE_REGION = "region";
+const UPDATE_PATH = "path";
+const UPDATE_PLACE = "place";
+function updateUndoStack(updateThing) {
+  let updateData = data;
+  if (updateThing === UPDATE_POINT) {
+    updateData = data.points;
+  } else if (updateThing === UPDATE_REGION) {
+    updateData = data.regions;
+  } else if (updateThing === UPDATE_PATH) {
+    updateData = data.paths;
+  } else if (updateThing === UPDATE_PLACE) {
+    updateData = data.places;
+  }
+
+  undoStack.push([JSON.stringify(updateData), updateThing]);
+
+  while (undoStack.length > 8) {
+    undoStack.splice(0, 1);
+  }
 }
