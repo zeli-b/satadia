@@ -56,57 +56,83 @@ function renderParallels() {
   const height = data.maxy - data.miny;
   const width = data.maxx - data.minx;
 
-  [18, 36, 180].forEach((divisor) => {
+  [6, 18, 36, 180].forEach((divisor) => {
     if ((camera.zoom * height) / divisor <= 300) {
       return;
     }
 
     for (let i = 1; i < divisor; i++) {
-      renderLattitude(data.miny + height * (i / divisor), parallelColor);
+      let direction;
+      if (2 * i > divisor) {
+        direction = "남";
+      } else if (2 * i === divisor) {
+        direction = "";
+      } else {
+        direction = "북";
+      }
+      let angle = Math.abs((180 * i) / divisor - 90);
+
+      renderLattitude(
+        data.miny + height * (i / divisor),
+        parallelColor,
+        `${angle}°${direction}`,
+      );
     }
   });
 
-  [18, 36, 180].forEach((divisor) => {
-    if ((camera.zoom * width) / divisor <= 300) {
-      return;
-    }
+  renderLattitude(data.miny + height / 2, equatorColor, "0°");
 
-    for (let i = 1; i < divisor; i++) {
-      renderLongitude(data.minx + width * (i / divisor), parallelColor);
-    }
-  });
+  for (let j = -1; j <= 1; j++) {
+    [6, 18, 36, 72, 360].forEach((divisor) => {
+      if ((camera.zoom * width) / divisor <= 300) {
+        return;
+      }
 
-  renderLattitude(data.miny + height * (1 / 6), parallelColor);
-  renderLattitude(data.miny + height * (2 / 6), parallelColor);
-  renderLattitude(data.miny + height * (3 / 6), equatorColor);
-  renderLattitude(data.miny + height * (4 / 6), parallelColor);
-  renderLattitude(data.miny + height * (5 / 6), parallelColor);
+      for (let i = 1; i < divisor; i++) {
+        let direction;
+        if (2 * i > divisor) {
+          direction = "서";
+        } else if (2 * i === divisor) {
+          direction = "";
+        } else {
+          direction = "동";
+        }
+        let angle = 180 - Math.abs((360 * i) / divisor - 180);
 
-  for (let i = -1; i <= 1; i++) {
-    renderLongitude(data.minx + width * (i + 1 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 2 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 3 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 4 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 5 / 6), parallelColor);
+        renderLongitude(
+          data.minx + width * (j + i / divisor),
+          parallelColor,
+          `${angle}°${direction}`,
+        );
+      }
+    });
   }
 }
 
-function renderLongitude(mapX, color) {
+function renderLongitude(mapX, color, label) {
   const [x, _] = convertPoint({ x: mapX });
 
   if (x < 0 || x > canvas.width) {
     return;
   }
 
+  const y1 = Math.max(0, convertPoint({ y: data.miny })[1]);
+  const y2 = Math.min(canvas.height, convertPoint({ y: data.maxy })[1]);
   context.strokeStyle = color;
   context.lineWidth = 1;
   context.beginPath();
-  context.moveTo(x, convertPoint({ y: data.miny })[1]);
-  context.lineTo(x, convertPoint({ y: data.maxy })[1]);
+  context.moveTo(x, y1);
+  context.lineTo(x, y2);
   context.stroke();
+
+  context.fillStyle = "black";
+  context.textAlign = "center";
+  context.font = "24px Pretendard JP";
+  context.fillText(label, x, y1 + 24);
+  context.fillText(label, x, y2 - 24);
 }
 
-function renderLattitude(mapY, color) {
+function renderLattitude(mapY, color, label) {
   const [_, y] = convertPoint({ y: mapY });
 
   if (y < 0 || y > canvas.height) {
@@ -119,6 +145,13 @@ function renderLattitude(mapY, color) {
   context.moveTo(0, y);
   context.lineTo(canvas.width, y);
   context.stroke();
+
+  context.fillStyle = "black";
+  context.font = "24px Pretendard JP";
+  context.textAlign = "left";
+  context.fillText(label, 10, y);
+  context.textAlign = "right";
+  context.fillText(label, canvas.width - 10, y);
 }
 
 function renderMousePath() {
