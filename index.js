@@ -47,6 +47,77 @@ function render() {
   renderText();
   renderMousePath();
   renderScale();
+  renderParallels();
+}
+
+const parallelColor = "#00000040";
+const equatorColor = "#ff000040";
+function renderParallels() {
+  const height = data.maxy - data.miny;
+  renderLattitude(data.miny + height * (1 / 6), parallelColor);
+  renderLattitude(data.miny + height * (2 / 6), parallelColor);
+  renderLattitude(data.miny + height * (3 / 6), equatorColor);
+  renderLattitude(data.miny + height * (4 / 6), parallelColor);
+  renderLattitude(data.miny + height * (5 / 6), parallelColor);
+
+  const width = data.maxx - data.minx;
+  for (let i = -1; i <= 1; i++) {
+    renderLongitude(data.minx + width * (i + 1 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 2 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 3 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 4 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 5 / 6), parallelColor);
+  }
+
+  [18, 36, 180].forEach((divisor) => {
+    if ((camera.zoom * height) / divisor <= 300) {
+      return;
+    }
+
+    for (let i = 1; i < divisor; i++) {
+      renderLattitude(data.miny + height * (i / divisor), parallelColor);
+    }
+  });
+
+  [18, 36, 180].forEach((divisor) => {
+    if ((camera.zoom * width) / divisor <= 300) {
+      return;
+    }
+
+    for (let i = 1; i < divisor; i++) {
+      renderLongitude(data.minx + width * (i / divisor), parallelColor);
+    }
+  });
+}
+
+function renderLongitude(mapX, color) {
+  const [x, _] = convertPoint({ x: mapX });
+
+  if (x < 0 || x > canvas.width) {
+    return;
+  }
+
+  context.strokeStyle = color;
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(x, convertPoint({ y: data.miny })[1]);
+  context.lineTo(x, convertPoint({ y: data.maxy })[1]);
+  context.stroke();
+}
+
+function renderLattitude(mapY, color) {
+  const [_, y] = convertPoint({ y: mapY });
+
+  if (y < 0 || y > canvas.height) {
+    return;
+  }
+
+  context.strokeStyle = color;
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(0, y);
+  context.lineTo(canvas.width, y);
+  context.stroke();
 }
 
 function renderMousePath() {
