@@ -623,7 +623,7 @@ function onmousedown(e) {
     const [x, y] = unconvertPoint(e.clientX, e.clientY);
     const point = newPoint(x, y);
 
-    updateUndoStack();
+    updateUndoStack(UPDATE_POINT);
     data.points.push(point);
 
     render();
@@ -727,7 +727,7 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (point && !isPointUsed(point.id)) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_POINT);
       data.points = data.points.filter((p) => p !== point);
     }
   }
@@ -741,7 +741,7 @@ function onmouseup(e) {
         const layer = prompt("거점 레이어");
         const place = newPlace(point.id, parseInt(layer), name);
 
-        updateUndoStack();
+        updateUndoStack(UPDATE_PLACE);
         data.places.push(place);
       }
     }
@@ -752,7 +752,7 @@ function onmouseup(e) {
     if (point) {
       const thePlace = getPlaceWithPointId(point.id);
       if (thePlace) {
-        updateUndoStack();
+        updateUndoStack(UPDATE_PLACE);
         data.places = data.places.filter((place) => place.id !== thePlace.id);
       }
     }
@@ -766,7 +766,7 @@ function onmouseup(e) {
         pathInsertSelected[1],
       );
 
-      updateUndoStack();
+      updateUndoStack(UPDATE_PATH);
       data.paths[pathInsertSelected[0]].points = [
         ...data.paths[pathInsertSelected[0]].points,
         point.id,
@@ -781,7 +781,7 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (point) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_PATH);
       let changed = false;
       for (let i = 0; i < data.paths.length; i++) {
         const path = data.paths[i];
@@ -807,14 +807,14 @@ function onmouseup(e) {
   if (tool === TOOL_PATH_MAKE) {
     const point = clickPoint(e);
 
-    updateUndoStack();
+    updateUndoStack(UPDATE_PATH);
     data.paths.push(newPath([pointSelected.id, point.id]));
   }
 
   if (tool === TOOL_PATH_DELETE) {
     const pathId = getPathSegment(e)[0];
 
-    updateUndoStack();
+    updateUndoStack(UPDATE_PATH);
     data.paths.splice(pathId, 1);
   }
 
@@ -827,7 +827,7 @@ function onmouseup(e) {
     }
 
     if (regionMakePointIds.length >= 3) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion([...regionMakePointIds]));
     }
 
@@ -838,7 +838,7 @@ function onmouseup(e) {
     const point = clickPoint(e);
 
     if (regionInsertSelected && point) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_REGION);
 
       const remainder = data.regions[regionInsertSelected[0]].points.splice(
         regionInsertSelected[1],
@@ -858,7 +858,7 @@ function onmouseup(e) {
     for (let i = 0; i < data.regions.length; i++) {
       const region = data.regions[i];
 
-      updateUndoStack();
+      updateUndoStack(UPDATE_REGION);
       let changed = false;
       for (let j = 0; j < region.points.length; j++) {
         const point = getPointById(region.points[j]);
@@ -884,13 +884,13 @@ function onmouseup(e) {
     const region = clickRegion(e);
 
     if (region) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_REGION);
       data.regions = data.regions.filter((r) => region.id !== r.id);
     }
   }
 
   if (tool === TOOL_REGION_CONFIG) {
-    updateUndoStack();
+    updateUndoStack(UPDATE_REGION);
 
     const region = clickRegion(e);
     region.layer = prompt("레이어", region.layer);
@@ -923,7 +923,7 @@ function onmouseup(e) {
     }
 
     if (nowPoints && nowPoints.length >= 3) {
-      updateUndoStack();
+      updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion(nowPoints));
     }
   }
@@ -1237,14 +1237,45 @@ function emptyProject() {
 
 let undoStack = [];
 function undo() {
-  if (undoStack.length > 0) {
-    data = JSON.parse(undoStack.pop());
+  if (undoStack.length <= 0) {
+    return;
   }
+
+  let [updateData, updateThing] = undoStack.pop();
+  updateData = JSON.parse(updateData);
+
+  if (updateThing === UPDATE_POINT) {
+    data.points = updateData;
+  } else if (updateThing === UPDATE_REGION) {
+    data.regions = updateData;
+  } else if (updateThing === UPDATE_PATH) {
+    data.paths = updateData;
+  } else if (updateThing === UPDATE_PLACE) {
+    data.places = updateData;
+  } else {
+    data = updateData;
+  }
+
   render();
 }
 
-function updateUndoStack() {
-  undoStack.push(JSON.stringify(data));
+const UPDATE_POINT = "point";
+const UPDATE_REGION = "region";
+const UPDATE_PATH = "path";
+const UPDATE_PLACE = "place";
+function updateUndoStack(updateThing) {
+  let updateData = data;
+  if (updateThing === UPDATE_POINT) {
+    updateData = data.points;
+  } else if (updateThing === UPDATE_REGION) {
+    updateData = data.regions;
+  } else if (updateThing === UPDATE_PATH) {
+    updateData = data.paths;
+  } else if (updateThing === UPDATE_PLACE) {
+    updateData = data.places;
+  }
+
+  undoStack.push([JSON.stringify(updateData), updateThing]);
 
   while (undoStack.length > 8) {
     undoStack.splice(0, 1);
