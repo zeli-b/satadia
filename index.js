@@ -83,7 +83,7 @@ function renderParallels() {
   renderLattitude(data.miny + height / 2, equatorColor, "0°");
 
   for (let j = -1; j <= 1; j++) {
-    [6, 18, 36, 72, 360].forEach((divisor) => {
+    [6, 12, 24, 72, 360].forEach((divisor) => {
       if ((camera.zoom * width) / divisor <= 300) {
         return;
       }
