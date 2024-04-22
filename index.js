@@ -51,23 +51,10 @@ function render() {
 }
 
 const parallelColor = "#00000040";
-const equatorColor = "#ff000040";
+const equatorColor = "red";
 function renderParallels() {
   const height = data.maxy - data.miny;
-  renderLattitude(data.miny + height * (1 / 6), parallelColor);
-  renderLattitude(data.miny + height * (2 / 6), parallelColor);
-  renderLattitude(data.miny + height * (3 / 6), equatorColor);
-  renderLattitude(data.miny + height * (4 / 6), parallelColor);
-  renderLattitude(data.miny + height * (5 / 6), parallelColor);
-
   const width = data.maxx - data.minx;
-  for (let i = -1; i <= 1; i++) {
-    renderLongitude(data.minx + width * (i + 1 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 2 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 3 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 4 / 6), parallelColor);
-    renderLongitude(data.minx + width * (i + 5 / 6), parallelColor);
-  }
 
   [18, 36, 180].forEach((divisor) => {
     if ((camera.zoom * height) / divisor <= 300) {
@@ -88,6 +75,20 @@ function renderParallels() {
       renderLongitude(data.minx + width * (i / divisor), parallelColor);
     }
   });
+
+  renderLattitude(data.miny + height * (1 / 6), parallelColor);
+  renderLattitude(data.miny + height * (2 / 6), parallelColor);
+  renderLattitude(data.miny + height * (3 / 6), equatorColor);
+  renderLattitude(data.miny + height * (4 / 6), parallelColor);
+  renderLattitude(data.miny + height * (5 / 6), parallelColor);
+
+  for (let i = -1; i <= 1; i++) {
+    renderLongitude(data.minx + width * (i + 1 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 2 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 3 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 4 / 6), parallelColor);
+    renderLongitude(data.minx + width * (i + 5 / 6), parallelColor);
+  }
 }
 
 function renderLongitude(mapX, color) {
