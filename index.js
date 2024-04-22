@@ -1175,6 +1175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
       pointMap = {};
+      undoStack.length = 0;
       camera.x = (data.maxx + data.minx) / 2;
       camera.y = (data.maxy + data.miny) / 2;
       camera.zoom =
