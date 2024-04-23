@@ -938,6 +938,7 @@ function onmouseup(e) {
     if (regionMakePointIds.length >= 3) {
       updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion([...regionMakePointIds]));
+      data.regions.sort((a, b) => a.layer - b.layer);
     }
 
     regionMakePointIds.length = 0;
@@ -1034,6 +1035,7 @@ function onmouseup(e) {
     if (nowPoints && nowPoints.length >= 3) {
       updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion(nowPoints));
+      data.regions.sort((a, b) => a.layer - b.layer);
     }
   }
 
@@ -1285,6 +1287,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
+      data.regions.sort((a, b) => a.layer - b.layer);
+      data.paths.sort((a, b) => a.layer - b.layer);
+      data.places.sort((a, b) => a.layer - b.layer);
       pointMap = {};
       undoStack.length = 0;
       camera.x = (data.maxx + data.minx) / 2;
