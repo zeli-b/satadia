@@ -918,6 +918,7 @@ function onmouseup(e) {
 
     updateUndoStack(UPDATE_PATH);
     data.paths.push(newPath([pointSelected.id, point.id]));
+    data.paths.sort((a, b) => a.layer - b.layer);
   }
 
   if (tool === TOOL_PATH_DELETE) {
