@@ -1399,3 +1399,40 @@ function updateUndoStack(updateThing) {
     undoStack.splice(0, 1);
   }
 }
+
+function removeUnusedPoints() {
+  const useds = new Set();
+
+  // -- places
+  data.places.forEach((place) => {
+    useds.add(place.point);
+  });
+
+  // -- paths
+  data.paths.forEach((path) => {
+    path.points.forEach((point) => {
+      useds.add(point);
+    });
+  });
+
+  // -- regions
+  data.regions.forEach((region) => {
+    region.points.forEach((point) => {
+      useds.add(point);
+    });
+  });
+
+  console.log(data.points.length - useds.size);
+
+  for (let i = 0; i < data.points.length; i++) {
+    const point = data.points[i];
+
+    if (useds.has(point.id)) {
+      continue;
+    }
+
+    data.points.splice(i--, 1);
+  }
+
+  render();
+}

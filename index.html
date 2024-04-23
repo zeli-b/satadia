@@ -38,8 +38,15 @@
       </div>
       <h3 class="mb-2">도구</h3>
       <div class="mb-2">
-        <div onclick="undo()" class="import--button">
-          <i class="bi bi-alarm"></i> 실행 취소
+        <div>
+          <div onclick="undo()" class="import--button">
+            <i class="bi bi-alarm"></i> 실행 취소
+          </div>
+        </div>
+        <div>
+          <div onclick="removeUnusedPoints()" class="import--button">
+            <i class="bi bi-trash"></i> 사용하지 않는 점 삭제
+          </div>
         </div>
       </div>
       <div id="tool-select-panel" class="mb-2">
