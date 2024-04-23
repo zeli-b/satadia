@@ -1102,6 +1102,7 @@ function newRegion(points) {
     const region = data.regions[i];
     id = Math.max(id, region.id);
   }
+  id++;
 
   const name = prompt("이름");
   const layer = parseInt(prompt("레이어"));
@@ -1133,9 +1134,10 @@ function newPath(points) {
     const path = data.paths[i];
     id = Math.max(path.id);
   }
+  id++;
 
   return {
-    id: id + 1,
+    id,
     layer,
     points,
     name,
