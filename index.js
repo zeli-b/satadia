@@ -1401,6 +1401,8 @@ function updateUndoStack(updateThing) {
 }
 
 function removeUnusedPoints() {
+  updateUndoStack();
+
   const useds = new Set();
 
   // -- places
