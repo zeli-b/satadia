@@ -40,6 +40,7 @@ function render() {
   data.places.forEach((place) => renderPlace(place));
   if (tool !== TOOL_HAND) {
     data.points.forEach((point) => renderPoint(point));
+    renderSelected();
   }
 
   // render pre-hud
@@ -48,6 +49,89 @@ function render() {
   renderMousePath();
   renderScale();
   renderParallels();
+}
+
+function renderSelected() {
+  e = { clientX: mouseX, clientY: mouseY };
+
+  context.strokeStyle = "black";
+  context.lineWidth = 1;
+
+  const point = clickPoint(e);
+  if (point) {
+    const [cx, cy] = convertPoint(point);
+
+    context.beginPath();
+    context.arc(cx, cy, 10, 0, 2 * Math.PI);
+    context.stroke();
+  }
+
+  const pathSegment = getPathSegment(e);
+  if (pathSegment) {
+    const [pathIndex, segmentIndex] = pathSegment;
+    const path = data.paths[pathIndex];
+    const p1Id = path.points[segmentIndex - 1];
+    const p2Id = path.points[segmentIndex];
+    const point1 = getPointById(p1Id);
+    const point2 = getPointById(p2Id);
+    const [cx1, cy1] = convertPoint(point1);
+    const [cx2, cy2] = convertPoint(point2);
+    const pathWidth = path.width;
+    const theta = Math.atan2(cy2 - cy1, cx2 - cx1);
+
+    context.beginPath();
+    context.moveTo(
+      cx1 + Math.cos(theta + Math.PI / 2) * (pathWidth + 5),
+      cy1 + Math.sin(theta + Math.PI / 2) * (pathWidth + 5),
+    );
+    context.lineTo(
+      cx1 + Math.cos(theta - Math.PI / 2) * (pathWidth + 5),
+      cy1 + Math.sin(theta - Math.PI / 2) * (pathWidth + 5),
+    );
+    context.lineTo(
+      cx2 + Math.cos(theta - Math.PI / 2) * (pathWidth + 5),
+      cy2 + Math.sin(theta - Math.PI / 2) * (pathWidth + 5),
+    );
+    context.lineTo(
+      cx2 + Math.cos(theta + Math.PI / 2) * (pathWidth + 5),
+      cy2 + Math.sin(theta + Math.PI / 2) * (pathWidth + 5),
+    );
+    context.closePath();
+    context.stroke();
+  }
+
+  const regionSegment = getRegionSegment(e);
+  if (regionSegment) {
+    const [regionIndex, segmentIndex] = regionSegment;
+    const region = data.regions[regionIndex];
+    const p1Id = region.points[segmentIndex - 1];
+    const p2Id = region.points[segmentIndex];
+    const point1 = getPointById(p1Id);
+    const point2 = getPointById(p2Id);
+    const [cx1, cy1] = convertPoint(point1);
+    const [cx2, cy2] = convertPoint(point2);
+    const theta = Math.atan2(cy2 - cy1, cx2 - cx1);
+
+    context.beginPath();
+    context.moveTo(
+      cx1 + Math.cos(theta + Math.PI / 2) * 5,
+      cy1 + Math.sin(theta + Math.PI / 2) * 5,
+    );
+    context.lineTo(
+      cx1 + Math.cos(theta - Math.PI / 2) * 5,
+      cy1 + Math.sin(theta - Math.PI / 2) * 5,
+    );
+    context.lineTo(
+      cx2 + Math.cos(theta - Math.PI / 2) * 5,
+      cy2 + Math.sin(theta - Math.PI / 2) * 5,
+    );
+    context.lineTo(
+      cx2 + Math.cos(theta + Math.PI / 2) * 5,
+      cy2 + Math.sin(theta + Math.PI / 2) * 5,
+    );
+    context.closePath();
+    context.stroke();
+  }
 }
 
 const parallelColor = "#00000040";
@@ -666,7 +750,7 @@ function getPathSegment(e) {
   let closest = null;
   for (let i = 0; i < data.paths.length; i++) {
     const path = data.paths[i];
-    for (let j = 0; j < path.points.length; j++) {
+    for (let j = 0; j < path.points.length - 1; j++) {
       const p1 = getPointById(path.points[j]);
       const p2 = getPointById(path.points[(j + 1) % path.points.length]);
 
@@ -1153,7 +1237,11 @@ function newPath(points) {
   };
 }
 
+let mouseX, mouseY;
 function onmousemove(e) {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+
   if (dragging) {
     camera.x -= (e.movementX * window.devicePixelRatio) / camera.zoom;
     camera.y -= (e.movementY * window.devicePixelRatio) / camera.zoom;
