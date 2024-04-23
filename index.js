@@ -370,6 +370,10 @@ function renderRegion(region, dx) {
   context.fill();
   context.globalAlpha = 1.0;
 
+  if ((max.x - min.x) * camera.zoom < 30) {
+    return;
+  }
+
   // -- fill text
   const realCenter = convertPoint(center);
   texts.push(() => {
