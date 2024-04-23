@@ -370,6 +370,10 @@ function renderRegion(region, dx) {
   context.fill();
   context.globalAlpha = 1.0;
 
+  if ((max.x - min.x) * camera.zoom < 30) {
+    return;
+  }
+
   // -- fill text
   const realCenter = convertPoint(center);
   texts.push(() => {
@@ -914,6 +918,7 @@ function onmouseup(e) {
 
     updateUndoStack(UPDATE_PATH);
     data.paths.push(newPath([pointSelected.id, point.id]));
+    data.paths.sort((a, b) => a.layer - b.layer);
   }
 
   if (tool === TOOL_PATH_DELETE) {
@@ -934,6 +939,7 @@ function onmouseup(e) {
     if (regionMakePointIds.length >= 3) {
       updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion([...regionMakePointIds]));
+      data.regions.sort((a, b) => a.layer - b.layer);
     }
 
     regionMakePointIds.length = 0;
@@ -1030,6 +1036,7 @@ function onmouseup(e) {
     if (nowPoints && nowPoints.length >= 3) {
       updateUndoStack(UPDATE_REGION);
       data.regions.push(newRegion(nowPoints));
+      data.regions.sort((a, b) => a.layer - b.layer);
     }
   }
 
@@ -1281,6 +1288,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reader.onload = (e) => {
       data = JSON.parse(e.target.result);
+      data.regions.sort((a, b) => a.layer - b.layer);
+      data.paths.sort((a, b) => a.layer - b.layer);
+      data.places.sort((a, b) => a.layer - b.layer);
       pointMap = {};
       undoStack.length = 0;
       camera.x = (data.maxx + data.minx) / 2;
