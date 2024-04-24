@@ -104,8 +104,11 @@ function renderSelected() {
   if (regionSegment) {
     const [regionIndex, segmentIndex] = regionSegment;
     const region = data.regions[regionIndex];
-    const p1Id = region.points[segmentIndex - 1];
-    const p2Id = region.points[segmentIndex];
+    const p1Id =
+      region.points[
+        (segmentIndex - 1 + region.points.length) % region.points.length
+      ];
+    const p2Id = region.points[segmentIndex % region.points.length];
     const point1 = getPointById(p1Id);
     const point2 = getPointById(p2Id);
     const [cx1, cy1] = convertPoint(point1);
@@ -211,6 +214,7 @@ function renderLongitude(mapX, color, label) {
 
   context.fillStyle = "black";
   context.textAlign = "center";
+  context.textBaseline = "middle";
   context.font = "24px Pretendard JP";
   context.fillText(label, x, y1 + 24);
   context.fillText(label, x, y2 - 24);
@@ -232,6 +236,7 @@ function renderLattitude(mapY, color, label) {
 
   context.fillStyle = "black";
   context.font = "24px Pretendard JP";
+  context.textBaseline = "middle";
   context.textAlign = "left";
   context.fillText(label, 10, y);
   context.textAlign = "right";
@@ -400,6 +405,7 @@ function getPointPositions(points) {
   return result;
 }
 
+let regionLabelSize = 32;
 function renderRegion(region, dx) {
   if (dx === undefined) dx = 0;
 
@@ -461,7 +467,7 @@ function renderRegion(region, dx) {
   // -- fill text
   const realCenter = convertPoint(center);
   texts.push(() => {
-    context.font = "32pt Pretendard JP";
+    context.font = `${regionLabelSize}pt Pretendard JP`;
     context.fillStyle = "black";
     context.textBaseline = "middle";
     context.textAlign = "center";
@@ -523,38 +529,38 @@ function renderPath(path, dx) {
     [0, 1],
     [points.length - 1, points.length - 2],
   ]) {
-    margin = { left: 0, right: 0, top: 0, bottom: 0 };
-    if (
-      Math.abs(positions[i].x - positions[j].x) >
-      Math.abs(positions[i].y - positions[j].y)
-    ) {
-      // horizontal
-      baseline = "middle";
-      if (positions[i].x < positions[j].x) {
-        // to right
-        align = "right";
-        margin.right = 12;
-      } else {
-        // to left
-        align = "left";
-        margin.left = 12;
-      }
-    } else {
-      // vertical
-      align = "center";
-      if (positions[i].y < positions[j].y) {
-        // to bottom
-        baseline = "bottom";
-        margin.bottom = 12;
-      } else {
-        // to top
-        baseline = "top";
-        margin.top = 12;
-      }
-    }
-
     const realPosition = convertPoint(positions[i]);
     texts.push(() => {
+      margin = { left: 0, right: 0, top: 0, bottom: 0 };
+      if (
+        Math.abs(positions[i].x - positions[j].x) >
+        Math.abs(positions[i].y - positions[j].y)
+      ) {
+        // horizontal
+        baseline = "middle";
+        if (positions[i].x < positions[j].x) {
+          // to right
+          align = "right";
+          margin.right = 12;
+        } else {
+          // to left
+          align = "left";
+          margin.left = 12;
+        }
+      } else {
+        // vertical
+        align = "center";
+        if (positions[i].y < positions[j].y) {
+          // to bottom
+          baseline = "bottom";
+          margin.bottom = 12;
+        } else {
+          // to top
+          baseline = "top";
+          margin.top = 12;
+        }
+      }
+
       context.textAlign = align;
       context.textBaseline = baseline;
       context.font = "16pt Pretendard JP";
@@ -752,7 +758,7 @@ function getPathSegment(e) {
     const path = data.paths[i];
     for (let j = 0; j < path.points.length - 1; j++) {
       const p1 = getPointById(path.points[j]);
-      const p2 = getPointById(path.points[(j + 1) % path.points.length]);
+      const p2 = getPointById(path.points[j]);
 
       const distance = getDistanceSegmentPoint(x, y, p1.x, p1.y, p2.x, p2.y);
 
@@ -1401,6 +1407,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       toolRadios[radio.id] = radio;
     });
+
+  const regionLabelSizeSpan = document.querySelector("#region-label-size-span");
+  document
+    .querySelector("#region-label-size-range")
+    .addEventListener("change", (e) => {
+      regionLabelSize = e.target.value;
+      regionLabelSizeSpan.innerText = e.target.value;
+      render();
+    });
 });
 
 function newData() {
@@ -1511,8 +1526,6 @@ function removeUnusedPoints() {
       useds.add(point);
     });
   });
-
-  console.log(data.points.length - useds.size);
 
   for (let i = 0; i < data.points.length; i++) {
     const point = data.points[i];
