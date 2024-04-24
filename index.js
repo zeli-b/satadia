@@ -1434,7 +1434,7 @@ function newData() {
 }
 
 function save() {
-  const text = JSON.stringify(data);
+  const text = beautify(data, undefined, 1, 80);
   const link = document.createElement("a");
 
   link.href = URL.createObjectURL(
