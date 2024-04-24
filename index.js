@@ -400,6 +400,7 @@ function getPointPositions(points) {
   return result;
 }
 
+let regionLabelSize = 12;
 function renderRegion(region, dx) {
   if (dx === undefined) dx = 0;
 
@@ -461,7 +462,7 @@ function renderRegion(region, dx) {
   // -- fill text
   const realCenter = convertPoint(center);
   texts.push(() => {
-    context.font = "32pt Pretendard JP";
+    context.font = `${regionLabelSize}pt Pretendard JP`;
     context.fillStyle = "black";
     context.textBaseline = "middle";
     context.textAlign = "center";
@@ -1390,6 +1391,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     reader.readAsText(file);
+
+    const regionLabelSizeSpan = document.querySelector(
+      "#region-label-size-span",
+    );
+    document
+      .querySelector("#region-label-size-range")
+      .addEventListener("change", (e) => {
+        regionLabelSize = e.target.value;
+        regionLabelSizeSpan.innerText = e.target.value;
+        render();
+      });
   });
 
   document
