@@ -1529,8 +1529,6 @@ function removeUnusedPoints() {
     });
   });
 
-  console.log(data.points.length - useds.size);
-
   for (let i = 0; i < data.points.length; i++) {
     const point = data.points[i];
 
