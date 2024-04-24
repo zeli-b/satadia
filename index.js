@@ -1396,17 +1396,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     reader.readAsText(file);
-
-    const regionLabelSizeSpan = document.querySelector(
-      "#region-label-size-span",
-    );
-    document
-      .querySelector("#region-label-size-range")
-      .addEventListener("change", (e) => {
-        regionLabelSize = e.target.value;
-        regionLabelSizeSpan.innerText = e.target.value;
-        render();
-      });
   });
 
   document
@@ -1417,6 +1406,15 @@ document.addEventListener("DOMContentLoaded", () => {
         render();
       });
       toolRadios[radio.id] = radio;
+    });
+
+  const regionLabelSizeSpan = document.querySelector("#region-label-size-span");
+  document
+    .querySelector("#region-label-size-range")
+    .addEventListener("change", (e) => {
+      regionLabelSize = e.target.value;
+      regionLabelSizeSpan.innerText = e.target.value;
+      render();
     });
 });
 
